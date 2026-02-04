@@ -2,7 +2,8 @@
 import { ref, onMounted } from 'vue'
 import draggable from 'vuedraggable'
 import CompanyModal from '../components/CompanyModal.vue'
-import { api, type CompanyApiResponse, type InterviewPlanApiResponse, type CreateCompanyData, type CreateInterviewPlanData } from '../services/api'
+import { api } from '../services/api'
+import type { CompanyApiResponse, InterviewPlanApiResponse, CreateCompanyData } from '../services/api'
 
 // 本地使用的公司类型
 interface Company {

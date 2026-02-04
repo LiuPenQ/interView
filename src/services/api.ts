@@ -69,6 +69,38 @@ export interface UpdateInterviewPlanData {
   status: string;
 }
 
+// 任务API响应类型（后端返回）
+export interface TodoApiResponse {
+  id: string;
+  date: string;
+  title: string;
+  description: string;
+  completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// 创建任务的数据类型
+export interface CreateTodoData {
+  date: string;
+  title: string;
+  description: string;
+  completed?: boolean;
+}
+
+// 更新任务的数据类型
+export interface UpdateTodoData {
+  date: string;
+  title: string;
+  description: string;
+  completed: boolean;
+}
+
+// 切换任务完成状态的数据类型
+export interface ToggleTodoCompletedData {
+  completed: boolean;
+}
+
 // 公司相关API
 export const companyApi = {
   // 获取所有公司
@@ -125,8 +157,42 @@ export const interviewPlanApi = {
   },
 };
 
+// 任务相关API
+export const todoApi = {
+  // 获取所有任务
+  getAll: (): Promise<TodoApiResponse[]> => {
+    return http.get('/todos');
+  },
+  
+  // 根据日期获取任务
+  getByDate: (date: string): Promise<TodoApiResponse[]> => {
+    return http.get(`/todos/date/${date}`);
+  },
+  
+  // 创建任务
+  create: (data: CreateTodoData): Promise<TodoApiResponse> => {
+    return http.post('/todos', data);
+  },
+  
+  // 更新任务
+  update: (id: string, data: UpdateTodoData): Promise<TodoApiResponse> => {
+    return http.put(`/todos/${id}`, data);
+  },
+  
+  // 切换任务完成状态
+  toggleCompleted: (id: string, data: ToggleTodoCompletedData): Promise<TodoApiResponse> => {
+    return http.patch(`/todos/${id}/completed`, data);
+  },
+  
+  // 删除任务
+  delete: (id: string): Promise<{ message: string }> => {
+    return http.delete(`/todos/${id}`);
+  },
+};
+
 // 导出所有API
 export const api = {
   company: companyApi,
   interviewPlan: interviewPlanApi,
+  todo: todoApi,
 };

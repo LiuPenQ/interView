@@ -10,7 +10,7 @@ const sqlObj = {
     host:"127.0.0.1",
     user:"root",
     password:"150159",
-    database:"web2019",
+    database:"boss",
     timezone:"08:00"
 };
 
@@ -89,8 +89,42 @@ connection.connect((err) => {
                         console.log('interview_plans 索引创建成功或已存在');
                     }
                     
-                    console.log('数据库初始化完成');
-                    connection.end();
+                    // 创建 todos 表
+                    const createTodosTable = `
+                        CREATE TABLE IF NOT EXISTS todos (
+                            id VARCHAR(36) PRIMARY KEY,
+                            date DATE NOT NULL,
+                            title VARCHAR(255) NOT NULL,
+                            description TEXT,
+                            completed BOOLEAN DEFAULT FALSE,
+                            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                    `;
+                    
+                    connection.query(createTodosTable, (err, result) => {
+                        if (err) {
+                            console.error('创建 todos 表失败:', err);
+                        } else {
+                            console.log('todos 表创建成功或已存在');
+                        }
+                        
+                        // 创建 todos 表的索引
+                        const createIndexTodos = `
+                            CREATE INDEX IF NOT EXISTS idx_todos_date ON todos(date);
+                        `;
+                        
+                        connection.query(createIndexTodos, (err, result) => {
+                            if (err) {
+                                console.error('创建 todos 索引失败:', err);
+                            } else {
+                                console.log('todos 索引创建成功或已存在');
+                            }
+                            
+                            console.log('数据库初始化完成');
+                            connection.end();
+                        });
+                    });
                 });
             });
         });

@@ -322,4 +322,178 @@ router.delete("/interview-plans/:id", (req, res) => {
     });
 });
 
+// 任务管理接口
+
+// 获取所有任务
+router.get("/todos", (req, res) => {
+    const sql = "SELECT * FROM todos ORDER BY date DESC, created_at DESC";
+    SQLConnect(sql, null, result => {
+        if (result.length >= 0) {
+            res.send({
+                status: 200,
+                data: result
+            });
+        } else {
+            res.send({
+                status: 500,
+                msg: "查询信息失败"
+            });
+        }
+    });
+});
+
+// 根据日期获取任务
+router.get("/todos/date/:date", (req, res) => {
+    const date = req.params.date;
+    const sql = "SELECT * FROM todos WHERE date = ? ORDER BY created_at DESC";
+    SQLConnect(sql, [date], result => {
+        if (result.length >= 0) {
+            res.send({
+                status: 200,
+                data: result
+            });
+        } else {
+            res.send({
+                status: 500,
+                msg: "查询信息失败"
+            });
+        }
+    });
+});
+
+// 创建任务
+router.post("/todos", (req, res) => {
+    const { date, title, description, completed } = req.body;
+    
+    if (!date || !title) {
+        return res.send({
+            status: 400,
+            msg: "Date and title are required"
+        });
+    }
+    
+    const id = uuidv4();
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    
+    const sql = "INSERT INTO todos (id, date, title, description, completed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    const arr = [id, date, title, description, completed || false, now, now];
+    
+    SQLConnect(sql, arr, result => {
+        if (result.affectedRows > 0) {
+            // 查询刚创建的任务
+            const selectSql = "SELECT * FROM todos WHERE id = ?";
+            SQLConnect(selectSql, [id], todoResult => {
+                if (todoResult.length > 0) {
+                    res.send({
+                        status: 201,
+                        data: todoResult[0]
+                    });
+                } else {
+                    res.send({
+                        status: 500,
+                        msg: "创建成功但查询失败"
+                    });
+                }
+            });
+        } else {
+            res.send({
+                status: 500,
+                msg: "创建失败"
+            });
+        }
+    });
+});
+
+// 更新任务
+router.put("/todos/:id", (req, res) => {
+    const id = req.params.id;
+    const { date, title, description, completed } = req.body;
+    
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    
+    const sql = "UPDATE todos SET date = ?, title = ?, description = ?, completed = ?, updated_at = ? WHERE id = ?";
+    const arr = [date, title, description, completed, now, id];
+    
+    SQLConnect(sql, arr, result => {
+        if (result.affectedRows > 0) {
+            // 查询更新后的任务
+            const selectSql = "SELECT * FROM todos WHERE id = ?";
+            SQLConnect(selectSql, [id], todoResult => {
+                if (todoResult.length > 0) {
+                    res.send({
+                        status: 200,
+                        data: todoResult[0]
+                    });
+                } else {
+                    res.send({
+                        status: 500,
+                        msg: "更新成功但查询失败"
+                    });
+                }
+            });
+        } else {
+            res.send({
+                status: 404,
+                msg: "Task not found"
+            });
+        }
+    });
+});
+
+// 切换任务完成状态
+router.patch("/todos/:id/completed", (req, res) => {
+    const id = req.params.id;
+    const { completed } = req.body;
+    
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    
+    const sql = "UPDATE todos SET completed = ?, updated_at = ? WHERE id = ?";
+    const arr = [completed, now, id];
+    
+    SQLConnect(sql, arr, result => {
+        if (result.affectedRows > 0) {
+            // 查询更新后的任务
+            const selectSql = "SELECT * FROM todos WHERE id = ?";
+            SQLConnect(selectSql, [id], todoResult => {
+                if (todoResult.length > 0) {
+                    res.send({
+                        status: 200,
+                        data: todoResult[0]
+                    });
+                } else {
+                    res.send({
+                        status: 500,
+                        msg: "更新成功但查询失败"
+                    });
+                }
+            });
+        } else {
+            res.send({
+                status: 404,
+                msg: "Task not found"
+            });
+        }
+    });
+});
+
+// 删除任务
+router.delete("/todos/:id", (req, res) => {
+    const id = req.params.id;
+    const sql = "DELETE FROM todos WHERE id = ?";
+    
+    SQLConnect(sql, [id], result => {
+        if (result.affectedRows > 0) {
+            res.send({
+                status: 200,
+                data: { message: 'Task deleted successfully' }
+            });
+        } else {
+            res.send({
+                status: 404,
+                msg: "Task not found"
+            });
+        }
+    });
+});
+
 module.exports = router;
