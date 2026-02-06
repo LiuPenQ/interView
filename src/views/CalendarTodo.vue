@@ -27,13 +27,13 @@ const selectedDate = ref(formatDate(new Date()))
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-const showAddModal = ref(false)
-const showEditModal = ref(false)
-const newTodo = ref({
+const showTodoModal = ref(false)
+const isEditMode = ref(false)
+const todoForm = ref({
+  id: '',
   title: '',
   description: ''
 })
-const editingTodo = ref<{ id: string; title: string; description: string } | null>(null)
 
 // 计算当前月份的日历数据
 const calendarDays = computed(() => {
@@ -124,60 +124,31 @@ const getCompletedTodoCountForDate = (date: Date) => {
   return todos.value.filter(todo => todo.date === dateStr && todo.completed).length
 }
 
-// 重置新任务表单
-const resetNewTodo = () => {
-  newTodo.value = {
+// 重置任务表单
+const resetTodoForm = () => {
+  todoForm.value = {
+    id: '',
     title: '',
     description: ''
   }
 }
 
-// 重置编辑任务表单
-const resetEditingTodo = () => {
-  editingTodo.value = null
-}
-
 // 打开编辑任务模态框
 const openEditModal = (todo: TodoItem) => {
-  editingTodo.value = {
+  todoForm.value = {
     id: todo.id,
     title: todo.title,
     description: todo.description
   }
-  showEditModal.value = true
+  isEditMode.value = true
+  showTodoModal.value = true
 }
 
-// 保存编辑任务
-const saveEditTodo = async () => {
-  if (!editingTodo.value || !editingTodo.value.title) {
-    return
-  }
-
-  loading.value = true
-  error.value = null
-
-  try {
-    // 找到要编辑的任务，获取完整信息
-    const todoToUpdate = todos.value.find(t => t.id === editingTodo.value?.id)
-    if (!todoToUpdate) {
-      throw new Error('任务不存在')
-    }
-
-    await api.todo.update(editingTodo.value.id, {
-      date: todoToUpdate.date,
-      title: editingTodo.value.title,
-      description: editingTodo.value.description,
-      completed: todoToUpdate.completed
-    })
-    await loadTodos() // 加载所有任务
-    resetEditingTodo()
-    showEditModal.value = false
-  } catch (err) {
-    console.error('编辑任务失败:', err)
-    error.value = '编辑任务失败，请稍后重试'
-  } finally {
-    loading.value = false
-  }
+// 打开新建任务模态框
+const openAddModal = () => {
+  resetTodoForm()
+  isEditMode.value = false
+  showTodoModal.value = true
 }
 
 // 获取选中日期的任务
@@ -209,9 +180,9 @@ const loadTodos = async (date?: string) => {
   }
 }
 
-// 添加新任务
-const addTodo = async () => {
-  if (!newTodo.value.title || !selectedDate.value) {
+// 保存任务（新建或编辑）
+const saveTodo = async () => {
+  if (!todoForm.value.title || !selectedDate.value) {
     return
   }
 
@@ -219,20 +190,37 @@ const addTodo = async () => {
   error.value = null
 
   try {
-    const todoData = {
-      date: selectedDate.value,
-      title: newTodo.value.title,
-      description: newTodo.value.description || '',
-      completed: false
-    } as CreateTodoData
+    if (isEditMode.value) {
+      // 编辑模式
+      const todoToUpdate = todos.value.find(t => t.id === todoForm.value.id)
+      if (!todoToUpdate) {
+        throw new Error('任务不存在')
+      }
 
-    await api.todo.create(todoData)
+      await api.todo.update(todoForm.value.id, {
+        date: todoToUpdate.date,
+        title: todoForm.value.title,
+        description: todoForm.value.description || '',
+        completed: todoToUpdate.completed
+      })
+    } else {
+      // 新建模式
+      const todoData = {
+        date: selectedDate.value,
+        title: todoForm.value.title,
+        description: todoForm.value.description || '',
+        completed: false
+      } as CreateTodoData
+
+      await api.todo.create(todoData)
+    }
+    
     await loadTodos() // 加载所有任务
-    resetNewTodo()
-    showAddModal.value = false
+    resetTodoForm()
+    showTodoModal.value = false
   } catch (err) {
-    console.error('添加任务失败:', err)
-    error.value = '添加任务失败，请稍后重试'
+    console.error('保存任务失败:', err)
+    error.value = isEditMode.value ? '编辑任务失败，请稍后重试' : '添加任务失败，请稍后重试'
   } finally {
     loading.value = false
   }
@@ -352,7 +340,7 @@ onMounted(() => {
           <h2 class="todo-title">
             {{ selectedDate ? `${selectedDate} 的任务` : '任务列表' }}
           </h2>
-          <button v-if="selectedDate" class="btn btn-primary" @click="showAddModal = true" :disabled="loading">
+          <button v-if="selectedDate" class="btn btn-primary" @click="openAddModal" :disabled="loading">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
               stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -402,58 +390,41 @@ onMounted(() => {
             </div>
           </div>
         </div>
-
-        <!-- 添加任务模态框 -->
-        <Dialog :visible="showAddModal" :title="`添加任务 - ${selectedDate}`" @close="showAddModal = false">
-          <form @submit.prevent="addTodo">
-            <div class="form-group">
-              <label for="todo-title" class="form-label">任务标题</label>
-              <input id="todo-title" v-model="newTodo.title" type="text" class="form-input" placeholder="请输入任务标题"
-                required />
-            </div>
-            <div class="form-group">
-              <label for="todo-description" class="form-label">任务描述</label>
-              <textarea id="todo-description" v-model="newTodo.description" class="form-input" placeholder="请输入任务描述"
-                rows="3"></textarea>
-            </div>
-          </form>
-          <template #footer>
-            <button type="button" class="btn btn-secondary" @click="showAddModal = false" :disabled="loading">
-              取消
-            </button>
-            <button type="button" class="btn btn-primary" @click="addTodo" :disabled="loading">
-              {{ loading ? '添加中...' : '添加任务' }}
-            </button>
-          </template>
-        </Dialog>
-
-        <!-- 编辑任务模态框 -->
-        <Dialog :visible="showEditModal" title="编辑任务" @close="() => { showEditModal = false; resetEditingTodo() }">
-          <form @submit.prevent="saveEditTodo">
-            <div class="form-group">
-              <label for="edit-todo-title" class="form-label">任务标题</label>
-              <input id="edit-todo-title" v-model="editingTodo.title" type="text" class="form-input"
-                placeholder="请输入任务标题" required />
-            </div>
-            <div class="form-group">
-              <label for="edit-todo-description" class="form-label">任务描述</label>
-              <textarea id="edit-todo-description" v-model="editingTodo.description" class="form-input"
-                placeholder="请输入任务描述" rows="3"></textarea>
-            </div>
-          </form>
-          <template #footer>
-            <button type="button" class="btn btn-secondary" @click="() => { showEditModal = false; resetEditingTodo() }"
-              :disabled="loading">
-              取消
-            </button>
-            <button type="button" class="btn btn-primary" @click="saveEditTodo" :disabled="loading">
-              {{ loading ? '保存中...' : '保存' }}
-            </button>
-          </template>
-        </Dialog>
       </div>
     </div>
+
+
+    <!-- 任务模态框（新建/编辑） -->
+    <Dialog :visible="showTodoModal" :title="isEditMode ? '编辑任务' : `添加任务 - ${selectedDate}`" @close="showTodoModal = false">
+      <template #body>
+        <form @submit.prevent="saveTodo">
+          <div class="form-group">
+            <label for="todo-title" class="form-label">任务标题</label>
+            <input id="todo-title" v-model="todoForm.title" type="text" class="form-input" placeholder="请输入任务标题"
+              required />
+          </div>
+          <div class="form-group">
+            <label for="todo-description" class="form-label">任务描述</label>
+            <textarea id="todo-description" v-model="todoForm.description" class="form-input" placeholder="请输入任务描述"
+              rows="3"></textarea>
+          </div>
+        </form>
+      </template>
+
+      <template #footer>
+        <button type="button" class="btn btn-secondary" @click="showTodoModal = false" :disabled="loading">
+          取消
+        </button>
+        <button type="button" class="btn btn-primary" @click="saveTodo" :disabled="loading">
+          {{ loading ? (isEditMode ? '保存中...' : '添加中...') : (isEditMode ? '保存' : '添加任务') }}
+        </button>
+      </template>
+    </Dialog>
+
+    
   </div>
+
+
 </template>
 
 <style scoped>
