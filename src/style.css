@@ -31,7 +31,7 @@
   --radius-xl: 1rem;
   
   --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
+  --font-size-base: 14px;
   --font-size-lg: 1.125rem;
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
@@ -63,4 +63,5 @@
 body {
   background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
+  font-size: var(--font-size-base);
 }
