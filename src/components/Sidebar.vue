@@ -38,6 +38,11 @@ const navItems = [
     icon: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12'
   },
   {
+    path: '/virtual-table',
+    label: '虚拟表格',
+    icon: 'M3 10h18M3 14h18M12 3v18'
+  },
+  {
     path: '/profile',
     label: '我的',
     icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
@@ -140,11 +145,11 @@ router.afterEach((to) => {
 .app-title {
   font-size: var(--font-size-xl);
   font-weight: bold;
-  color: var(--color-primary);
   white-space: nowrap;
   overflow: hidden;
   flex-shrink: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
+  margin-bottom: 0;
 }
 
 .sidebar-nav {
@@ -181,8 +186,8 @@ router.afterEach((to) => {
 }
 
 .nav-item.active {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: var(--color-primary);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 

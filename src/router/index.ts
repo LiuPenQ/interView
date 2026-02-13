@@ -18,14 +18,19 @@ const router = createRouter({
       component: () => import('../views/CalendarTodo.vue')
     },
     {
-      path: '/profile',
-      name: 'Profile',
-      component: () => import('../views/Profile.vue')
-    },
-    {
       path: '/file-upload',
       name: 'FileUpload',
       component: () => import('../views/FileUpload.vue')
+    },
+    {
+      path: '/virtual-table',
+      name: 'VirtualTable',
+      component: () => import('../views/VirtualTable.vue')
+    },
+    {
+      path: '/profile',
+      name: 'Profile',
+      component: () => import('../views/Profile.vue')
     }
   ]
 })

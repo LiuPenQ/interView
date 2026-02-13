@@ -1,3 +1,13 @@
+<!--
+工作台页面
+用途：展示公司列表和面试计划，提供拖拽排序功能
+实现：使用Vue 3 Composition API和vuedraggable实现拖拽功能
+功能：
+- 公司列表管理（添加、删除）
+- 面试计划管理（添加、删除）
+- 拖拽排序功能
+- 数据可视化展示
+-->
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import draggable from 'vuedraggable'
@@ -599,8 +609,9 @@ onMounted(() => {
 }
 
 .btn-sm {
-  padding: var(--spacing-xs) var(--spacing-sm);
+  padding: var(--spacing-xs);
   font-size: var(--font-size-xs);
+  border-radius: var(--radius-sm);
 }
 
 .empty-state {

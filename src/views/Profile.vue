@@ -1,3 +1,12 @@
+<!--
+用户个人资料页面
+用途：展示用户个人信息，提供编辑和退出登录功能
+实现：使用Vue 3 Composition API，展示用户基本信息
+功能：
+- 显示用户个人资料
+- 提供编辑个人信息功能
+- 支持退出登录
+-->
 <template>
   <div class="p-6">
     <h1 class="text-2xl font-bold mb-6">我的</h1>

@@ -1,3 +1,14 @@
+<!--
+日历任务管理页面
+用途：展示日历和任务管理功能，支持添加、编辑、删除任务
+实现：使用Vue 3 Composition API，通过计算属性生成日历数据，连接后端API管理任务
+功能：
+- 日历视图展示，包含月份和星期
+- 任务的添加、编辑、删除
+- 任务状态管理
+- 日期选择和任务筛选
+- 后端API集成
+-->
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { api } from '../services/api'

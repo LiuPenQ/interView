@@ -1,3 +1,15 @@
+<!--
+大文件上传研究页面
+用途：实现分片上传和断点续传功能，研究大文件上传的性能优化
+实现：使用Vue 3 Composition API，通过File.slice()方法分割文件，逐个上传分片
+功能：
+- 支持大文件分片上传
+- 实现断点续传
+- 内存使用优化
+- 上传进度和速度显示
+- 分片大小可调整
+- 网络错误模拟和重试机制
+-->
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 
