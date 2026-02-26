@@ -14,11 +14,12 @@ export default defineConfig(({ mode, command }) => {
         viteCompression({
           algorithm: 'gzip',
           threshold: 10240,
-          deleteOriginFile: false
+          deleteOriginFile: false,
+          verbose: true
         }),
         visualizer({
           open: true,
-          filename: 'dist/stats.html'
+          filename: 'docs/stats.html'
         })
       ] : [])
     ],
@@ -45,7 +46,7 @@ export default defineConfig(({ mode, command }) => {
 
     build: {
       target: 'es2015',
-      outDir: 'dist',
+      outDir: 'docs',
       assetsDir: 'assets',
       sourcemap: command === 'build' ? false : true,
       minify: 'esbuild',
