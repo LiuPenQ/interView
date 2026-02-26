@@ -1,3 +1,38 @@
+<template>
+  <Dialog :visible="isOpen" :title="company ? '编辑公司' : '新建公司'" @close="handleClose">
+    <template #body>
+      <form>
+        <div class="form-group">
+          <label for="name" class="form-label">公司名称</label>
+          <input id="name" v-model="form.name" type="text" class="form-input" placeholder="请输入公司名称" required />
+        </div>
+        <div class="form-group">
+          <label for="description" class="form-label">公司介绍</label>
+          <textarea id="description" v-model="form.description" class="form-input" placeholder="请输入公司介绍"
+            rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="position" class="form-label">岗位描述</label>
+          <input id="position" v-model="form.position" type="text" class="form-input" placeholder="请输入岗位描述" required />
+        </div>
+        <div class="form-group">
+          <label for="salary" class="form-label">薪资范围</label>
+          <input id="salary" v-model="form.salary" type="text" class="form-input" placeholder="请输入薪资范围" />
+        </div>
+      </form>
+    </template>
+
+    <template #footer>
+      <button type="button" class="btn btn-secondary" @click="handleClose">
+        取消
+      </button>
+      <button type="submit" class="btn btn-primary" :disabled="!isFormValid || isSubmitting" @click="handleSave">
+        {{ isSubmitting ? '保存中...' : '保存' }}
+      </button>
+    </template>
+  </Dialog>
+</template>
+
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
@@ -57,41 +92,6 @@ const handleSave = async () => {
   }
 }
 </script>
-
-<template>
-  <Dialog :visible="isOpen" :title="company ? '编辑公司' : '新建公司'" @close="handleClose">
-    <template #body>
-      <form>
-        <div class="form-group">
-          <label for="name" class="form-label">公司名称</label>
-          <input id="name" v-model="form.name" type="text" class="form-input" placeholder="请输入公司名称" required />
-        </div>
-        <div class="form-group">
-          <label for="description" class="form-label">公司介绍</label>
-          <textarea id="description" v-model="form.description" class="form-input" placeholder="请输入公司介绍"
-            rows="3"></textarea>
-        </div>
-        <div class="form-group">
-          <label for="position" class="form-label">岗位描述</label>
-          <input id="position" v-model="form.position" type="text" class="form-input" placeholder="请输入岗位描述" required />
-        </div>
-        <div class="form-group">
-          <label for="salary" class="form-label">薪资范围</label>
-          <input id="salary" v-model="form.salary" type="text" class="form-input" placeholder="请输入薪资范围" />
-        </div>
-      </form>
-    </template>
-
-    <template #footer>
-      <button type="button" class="btn btn-secondary" @click="handleClose">
-        取消
-      </button>
-      <button type="submit" class="btn btn-primary" :disabled="!isFormValid || isSubmitting" @click="handleSave">
-        {{ isSubmitting ? '保存中...' : '保存' }}
-      </button>
-    </template>
-  </Dialog>
-</template>
 
 <style scoped>
 .form-group {

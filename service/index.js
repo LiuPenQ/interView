@@ -22,7 +22,7 @@ app.all('*', function(req, res, next) {
     next();
 })
 
-app.listen(3004,function(){
-    console.log("服务器运行在3004端口上");
-    debug("服务器运行在3004端口上");
+app.listen(3001,function(){
+    console.log("服务器运行在3001端口上");
+    debug("服务器运行在3001端口上");
 })

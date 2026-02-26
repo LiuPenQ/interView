@@ -11,8 +11,8 @@
 -->
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { api } from '../services/api'
-import type { CreateTodoData } from '../services/api'
+import api from '../../services/api'
+import type { CreateTodoData } from '../../types'
 
 // 任务类型定义
 interface TodoItem {
@@ -176,11 +176,11 @@ const loadTodos = async (date?: string) => {
     if (date) {
       // 加载指定日期的任务
       const data = await api.todo.getByDate(date)
-      todos.value = data
+      todos.value = data.data || []
     } else {
       // 加载所有任务
       const data = await api.todo.getAll()
-      todos.value = data
+      todos.value = data.data || []
     }
   } catch (err) {
     console.error('加载任务失败:', err)
@@ -225,7 +225,7 @@ const saveTodo = async () => {
 
       await api.todo.create(todoData)
     }
-    
+
     await loadTodos() // 加载所有任务
     resetTodoForm()
     showTodoModal.value = false
@@ -246,7 +246,7 @@ const toggleTodoCompleted = async (id: string) => {
   error.value = null
 
   try {
-    await api.todo.toggleCompleted(id, { completed: !todo.completed })
+    await api.todo.toggleCompleted(id, !todo.completed)
     await loadTodos() // 加载所有任务
   } catch (err) {
     console.error('更新任务状态失败:', err)
@@ -339,7 +339,7 @@ onMounted(() => {
             <div class="day-number">{{ day.day }}</div>
             <div v-if="getTodoCountForDate(day.date) > 0" class="todo-indicator">
               <span class="todo-count">{{ getCompletedTodoCountForDate(day.date) }}/{{ getTodoCountForDate(day.date)
-              }}</span>
+                }}</span>
             </div>
           </div>
         </div>
@@ -406,7 +406,8 @@ onMounted(() => {
 
 
     <!-- 任务模态框（新建/编辑） -->
-    <Dialog :visible="showTodoModal" :title="isEditMode ? '编辑任务' : `添加任务 - ${selectedDate}`" @close="showTodoModal = false">
+    <Dialog :visible="showTodoModal" :title="isEditMode ? '编辑任务' : `添加任务 - ${selectedDate}`"
+      @close="showTodoModal = false">
       <template #body>
         <form @submit.prevent="saveTodo">
           <div class="form-group">
@@ -432,7 +433,7 @@ onMounted(() => {
       </template>
     </Dialog>
 
-    
+
   </div>
 
 

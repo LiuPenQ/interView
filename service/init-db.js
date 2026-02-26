@@ -121,8 +121,42 @@ connection.connect((err) => {
                                 console.log('todos 索引创建成功或已存在');
                             }
                             
-                            console.log('数据库初始化完成');
-                            connection.end();
+                            // 创建 users 表
+                            const createUsersTable = `
+                                CREATE TABLE IF NOT EXISTS users (
+                                    id VARCHAR(36) PRIMARY KEY,
+                                    username VARCHAR(50) NOT NULL UNIQUE,
+                                    email VARCHAR(100) NOT NULL UNIQUE,
+                                    password VARCHAR(255) NOT NULL,
+                                    refresh_token VARCHAR(255),
+                                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                            `;
+                            
+                            connection.query(createUsersTable, (err, result) => {
+                                if (err) {
+                                    console.error('创建 users 表失败:', err);
+                                } else {
+                                    console.log('users 表创建成功或已存在');
+                                }
+                                
+                                // 创建 users 表的索引
+                                const createIndexUsers = `
+                                    CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+                                `;
+                                
+                                connection.query(createIndexUsers, (err, result) => {
+                                    if (err) {
+                                        console.error('创建 users 索引失败:', err);
+                                    } else {
+                                        console.log('users 索引创建成功或已存在');
+                                    }
+                                    
+                                    console.log('数据库初始化完成');
+                                    connection.end();
+                                });
+                            });
                         });
                     });
                 });

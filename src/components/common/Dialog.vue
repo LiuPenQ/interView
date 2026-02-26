@@ -1,3 +1,30 @@
+<template>
+  <Teleport to="body">
+    <div v-if="visible" class="dialog-overlay" @click="handleOverlayClick">
+      <div class="dialog-content" :style="{
+        width: width,
+        maxWidth: maxWidth
+      }">
+        <div class="dialog-header">
+          <h2 class="dialog-title">{{ title }}</h2>
+          <button class="dialog-close" @click="handleClose">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="dialog-body">
+          <slot name="body"></slot>
+        </div>
+        <div v-if="$slots.footer" class="dialog-footer">
+          <slot name="footer"></slot>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+</template>
+
 <script setup lang="ts">
 interface Props {
   visible: boolean
@@ -31,33 +58,6 @@ const handleOverlayClick = (event: MouseEvent) => {
   }
 }
 </script>
-
-<template>
-  <Teleport to="body">
-    <div v-if="visible" class="dialog-overlay" @click="handleOverlayClick">
-      <div class="dialog-content" :style="{
-        width: width,
-        maxWidth: maxWidth
-      }">
-        <div class="dialog-header">
-          <h2 class="dialog-title">{{ title }}</h2>
-          <button class="dialog-close" @click="handleClose">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-              stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div class="dialog-body">
-          <slot name="body"></slot>
-        </div>
-        <div v-if="$slots.footer" class="dialog-footer">
-          <slot name="footer"></slot>
-        </div>
-      </div>
-    </div>
-  </Teleport>
-</template>
 
 <style scoped>
 .dialog-overlay {

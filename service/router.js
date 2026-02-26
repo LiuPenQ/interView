@@ -496,4 +496,285 @@ router.delete("/todos/:id", (req, res) => {
     });
 });
 
+// 认证相关接口
+const auth = require('./auth');
+
+// 注册接口
+router.post("/auth/register", async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+        
+        if (!username || !email || !password) {
+            return res.send({
+                status: 400,
+                msg: "用户名、邮箱和密码不能为空"
+            });
+        }
+        
+        // 检查用户名是否已存在
+        const checkUsernameSql = "SELECT * FROM users WHERE username = ?";
+        SQLConnect(checkUsernameSql, [username], usernameResult => {
+            if (usernameResult.length > 0) {
+                return res.send({
+                    status: 400,
+                    msg: "用户名已存在"
+                });
+            }
+            
+            // 检查邮箱是否已存在
+            const checkEmailSql = "SELECT * FROM users WHERE email = ?";
+            SQLConnect(checkEmailSql, [email], emailResult => {
+                if (emailResult.length > 0) {
+                    return res.send({
+                        status: 400,
+                        msg: "邮箱已存在"
+                    });
+                }
+                
+                // 密码加密
+                auth.hashPassword(password).then(hashedPassword => {
+                    const id = require('uuid').v4();
+                    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+                    
+                    const sql = "INSERT INTO users (id, username, email, password, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)";
+                    const arr = [id, username, email, hashedPassword, now, now];
+                    
+                    SQLConnect(sql, arr, result => {
+                        if (result.affectedRows > 0) {
+                            res.send({
+                                status: 201,
+                                data: { message: '注册成功' }
+                            });
+                        } else {
+                            res.send({
+                                status: 500,
+                                msg: "注册失败"
+                            });
+                        }
+                    });
+                });
+            });
+        });
+    } catch (error) {
+        console.error('注册错误:', error);
+        res.send({
+            status: 500,
+            msg: "服务器内部错误"
+        });
+    }
+});
+
+// 登录接口
+router.post("/auth/login", async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.send({
+                status: 400,
+                msg: "用户名和密码不能为空"
+            });
+        }
+        
+        // 查找用户
+        const sql = "SELECT * FROM users WHERE username = ?";
+        SQLConnect(sql, [username], result => {
+            if (result.length === 0) {
+                return res.send({
+                    status: 401,
+                    msg: "用户名或密码错误"
+                });
+            }
+            
+            const user = result[0];
+            
+            // 验证密码
+            auth.verifyPassword(password, user.password).then(isMatch => {
+                if (!isMatch) {
+                    return res.send({
+                        status: 401,
+                        msg: "用户名或密码错误"
+                    });
+                }
+                
+                // 生成token
+                const accessToken = auth.generateAccessToken(user);
+                const refreshToken = auth.generateRefreshToken(user);
+                
+                // 更新用户的refresh token
+                const updateSql = "UPDATE users SET refresh_token = ? WHERE id = ?";
+                SQLConnect(updateSql, [refreshToken, user.id], updateResult => {
+                    if (updateResult.affectedRows > 0) {
+                        res.send({
+                            status: 200,
+                            data: {
+                                accessToken,
+                                refreshToken,
+                                user: {
+                                    id: user.id,
+                                    username: user.username,
+                                    email: user.email
+                                }
+                            }
+                        });
+                    } else {
+                        res.send({
+                            status: 500,
+                            msg: "登录失败"
+                        });
+                    }
+                });
+            });
+        });
+    } catch (error) {
+        console.error('登录错误:', error);
+        res.send({
+            status: 500,
+            msg: "服务器内部错误"
+        });
+    }
+});
+
+// 刷新token接口
+router.post("/auth/refresh", (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+        
+        if (!refreshToken) {
+            return res.send({
+                status: 400,
+                msg: "刷新token不能为空"
+            });
+        }
+        
+        // 验证refresh token
+        const decoded = auth.verifyRefreshToken(refreshToken);
+        if (!decoded) {
+            return res.send({
+                status: 401,
+                msg: "刷新token无效"
+            });
+        }
+        
+        // 查找用户并验证refresh token
+        const sql = "SELECT * FROM users WHERE id = ? AND refresh_token = ?";
+        SQLConnect(sql, [decoded.id, refreshToken], result => {
+            if (result.length === 0) {
+                return res.send({
+                    status: 401,
+                    msg: "刷新token无效"
+                });
+            }
+            
+            const user = result[0];
+            
+            // 生成新的access token
+            const newAccessToken = auth.generateAccessToken(user);
+            
+            res.send({
+                status: 200,
+                data: {
+                    accessToken: newAccessToken
+                }
+            });
+        });
+    } catch (error) {
+        console.error('刷新token错误:', error);
+        res.send({
+            status: 500,
+            msg: "服务器内部错误"
+        });
+    }
+});
+
+// 退出登录接口
+router.post("/auth/logout", (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+        
+        if (!refreshToken) {
+            return res.send({
+                status: 400,
+                msg: "刷新token不能为空"
+            });
+        }
+        
+        // 验证refresh token
+        const decoded = auth.verifyRefreshToken(refreshToken);
+        if (!decoded) {
+            return res.send({
+                status: 401,
+                msg: "刷新token无效"
+            });
+        }
+        
+        // 清除用户的refresh token
+        const sql = "UPDATE users SET refresh_token = NULL WHERE id = ?";
+        SQLConnect(sql, [decoded.id], result => {
+            if (result.affectedRows > 0) {
+                res.send({
+                    status: 200,
+                    data: { message: '退出登录成功' }
+                });
+            } else {
+                res.send({
+                    status: 500,
+                    msg: "退出登录失败"
+                });
+            }
+        });
+    } catch (error) {
+        console.error('退出登录错误:', error);
+        res.send({
+            status: 500,
+            msg: "服务器内部错误"
+        });
+    }
+});
+
+// 获取用户信息接口
+router.get("/auth/me", (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.send({
+                status: 401,
+                msg: "未授权"
+            });
+        }
+        
+        const token = authHeader.split(' ')[1];
+        const decoded = auth.verifyAccessToken(token);
+        
+        if (!decoded) {
+            return res.send({
+                status: 401,
+                msg: "token无效"
+            });
+        }
+        
+        // 查找用户
+        const sql = "SELECT id, username, email, created_at FROM users WHERE id = ?";
+        SQLConnect(sql, [decoded.id], result => {
+            if (result.length === 0) {
+                return res.send({
+                    status: 404,
+                    msg: "用户不存在"
+                });
+            }
+            
+            res.send({
+                status: 200,
+                data: result[0]
+            });
+        });
+    } catch (error) {
+        console.error('获取用户信息错误:', error);
+        res.send({
+            status: 500,
+            msg: "服务器内部错误"
+        });
+    }
+});
+
 module.exports = router;

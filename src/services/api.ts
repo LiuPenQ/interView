@@ -1,198 +1,131 @@
-import http from './request';
+// API服务配置
+// 功能：定义所有API接口，使用配置好的axios实例
 
-// API响应类型
-interface ApiResponse<T> {
-  status: number;
-  data: T;
-  msg?: string;
-}
+import instance from './request';
 
-// 公司API响应类型（后端返回）
-export interface CompanyApiResponse {
-  id: string;
-  name: string;
-  description: string;
-  position: string;
-  salary: string;
-  created_at: string;
-  updated_at: string;
-}
-
-// 面试计划API响应类型（后端返回）
-export interface InterviewPlanApiResponse {
-  id: string;
-  company_id: string;
-  date: string;
-  time: string;
-  location: string;
-  notes: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  company_name?: string;
-  company_position?: string;
-}
-
-// 创建公司的数据类型
-export interface CreateCompanyData {
-  name: string;
-  description: string;
-  position: string;
-  salary: string;
-}
-
-// 更新公司的数据类型
-export interface UpdateCompanyData {
-  name: string;
-  description: string;
-  position: string;
-  salary: string;
-}
-
-// 创建面试计划的数据类型
-export interface CreateInterviewPlanData {
-  company_id: string;
-  date: string;
-  time: string;
-  location: string;
-  notes: string;
-  status?: string;
-}
-
-// 更新面试计划的数据类型
-export interface UpdateInterviewPlanData {
-  company_id: string;
-  date: string;
-  time: string;
-  location: string;
-  notes: string;
-  status: string;
-}
-
-// 任务API响应类型（后端返回）
-export interface TodoApiResponse {
-  id: string;
-  date: string;
-  title: string;
-  description: string;
-  completed: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-// 创建任务的数据类型
-export interface CreateTodoData {
-  date: string;
-  title: string;
-  description: string;
-  completed?: boolean;
-}
-
-// 更新任务的数据类型
-export interface UpdateTodoData {
-  date: string;
-  title: string;
-  description: string;
-  completed: boolean;
-}
-
-// 切换任务完成状态的数据类型
-export interface ToggleTodoCompletedData {
-  completed: boolean;
-}
-
-// 公司相关API
-export const companyApi = {
-  // 获取所有公司
-  getAll: (): Promise<CompanyApiResponse[]> => {
-    return http.get('/companies');
+// 认证相关API
+const authApi = {
+  // 登录
+  login: (data: { username: string; password: string }) => {
+    return instance.post('/auth/login', data);
   },
   
-  // 获取单个公司
-  getOne: (id: string): Promise<CompanyApiResponse> => {
-    return http.get(`/companies/${id}`);
+  // 注册
+  register: (data: { username: string; email: string; password: string }) => {
+    return instance.post('/auth/register', data);
   },
   
-  // 创建公司
-  create: (data: CreateCompanyData): Promise<CompanyApiResponse> => {
-    return http.post('/companies', data);
+  // 退出登录
+  logout: (data: { refreshToken: string }) => {
+    return instance.post('/auth/logout', data);
   },
   
-  // 更新公司
-  update: (id: string, data: UpdateCompanyData): Promise<CompanyApiResponse> => {
-    return http.put(`/companies/${id}`, data);
+  // 刷新token
+  refresh: (data: { refreshToken: string }) => {
+    return instance.post('/auth/refresh', data);
   },
   
-  // 删除公司
-  delete: (id: string): Promise<{ message: string }> => {
-    return http.delete(`/companies/${id}`);
-  },
-};
-
-// 面试计划相关API
-export const interviewPlanApi = {
-  // 获取所有面试计划
-  getAll: (): Promise<InterviewPlanApiResponse[]> => {
-    return http.get('/interview-plans');
-  },
-  
-  // 获取单个面试计划
-  getOne: (id: string): Promise<InterviewPlanApiResponse> => {
-    return http.get(`/interview-plans/${id}`);
-  },
-  
-  // 创建面试计划
-  create: (data: CreateInterviewPlanData): Promise<InterviewPlanApiResponse> => {
-    return http.post('/interview-plans', data);
-  },
-  
-  // 更新面试计划
-  update: (id: string, data: UpdateInterviewPlanData): Promise<InterviewPlanApiResponse> => {
-    return http.put(`/interview-plans/${id}`, data);
-  },
-  
-  // 删除面试计划
-  delete: (id: string): Promise<{ message: string }> => {
-    return http.delete(`/interview-plans/${id}`);
-  },
+  // 获取用户信息
+  getMe: () => {
+    return instance.get('/auth/me');
+  }
 };
 
 // 任务相关API
-export const todoApi = {
+const todoApi = {
   // 获取所有任务
-  getAll: (): Promise<TodoApiResponse[]> => {
-    return http.get('/todos');
+  getAll: () => {
+    return instance.get('/todos');
   },
   
   // 根据日期获取任务
-  getByDate: (date: string): Promise<TodoApiResponse[]> => {
-    return http.get(`/todos/date/${date}`);
+  getByDate: (date: string) => {
+    return instance.get(`/todos/date/${date}`);
   },
   
   // 创建任务
-  create: (data: CreateTodoData): Promise<TodoApiResponse> => {
-    return http.post('/todos', data);
+  create: (data: any) => {
+    return instance.post('/todos', data);
   },
   
   // 更新任务
-  update: (id: string, data: UpdateTodoData): Promise<TodoApiResponse> => {
-    return http.put(`/todos/${id}`, data);
+  update: (id: string, data: any) => {
+    return instance.put(`/todos/${id}`, data);
   },
   
   // 切换任务完成状态
-  toggleCompleted: (id: string, data: ToggleTodoCompletedData): Promise<TodoApiResponse> => {
-    return http.patch(`/todos/${id}/completed`, data);
+  toggleCompleted: (id: string, completed: boolean) => {
+    return instance.patch(`/todos/${id}/completed`, { completed });
   },
   
   // 删除任务
-  delete: (id: string): Promise<{ message: string }> => {
-    return http.delete(`/todos/${id}`);
-  },
+  delete: (id: string) => {
+    return instance.delete(`/todos/${id}`);
+  }
 };
 
-// 导出所有API
-export const api = {
+// 公司相关API
+const companyApi = {
+  // 获取所有公司
+  getAll: () => {
+    return instance.get('/companies');
+  },
+  
+  // 获取单个公司
+  getById: (id: string) => {
+    return instance.get(`/companies/${id}`);
+  },
+  
+  // 创建公司
+  create: (data: any) => {
+    return instance.post('/companies', data);
+  },
+  
+  // 更新公司
+  update: (id: string, data: any) => {
+    return instance.put(`/companies/${id}`, data);
+  },
+  
+  // 删除公司
+  delete: (id: string) => {
+    return instance.delete(`/companies/${id}`);
+  }
+};
+
+// 面试计划相关API
+const interviewPlanApi = {
+  // 获取所有面试计划
+  getAll: () => {
+    return instance.get('/interview-plans');
+  },
+  
+  // 获取单个面试计划
+  getById: (id: string) => {
+    return instance.get(`/interview-plans/${id}`);
+  },
+  
+  // 创建面试计划
+  create: (data: any) => {
+    return instance.post('/interview-plans', data);
+  },
+  
+  // 更新面试计划
+  update: (id: string, data: any) => {
+    return instance.put(`/interview-plans/${id}`, data);
+  },
+  
+  // 删除面试计划
+  delete: (id: string) => {
+    return instance.delete(`/interview-plans/${id}`);
+  }
+};
+
+// 导出API对象
+const api = {
+  todo: todoApi,
   company: companyApi,
   interviewPlan: interviewPlanApi,
-  todo: todoApi,
+  auth: authApi
 };
+
+export default api;
