@@ -3,7 +3,7 @@ import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { isAuthenticated } from '../utils/auth'
 
 const router = createRouter({
-  history: createWebHistory('/interView/'),
+  history: createWebHistory('/'),
   routes: [
     {
       path: '/',
@@ -82,23 +82,23 @@ const router = createRouter({
 })
 
 // 全局前置守卫
-router.beforeEach((to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
-  // 检查路由是否需要认证
-  const requiresAuth = to.meta.requiresAuth !== false
+// router.beforeEach((to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
+//   // 检查路由是否需要认证
+//   const requiresAuth = to.meta.requiresAuth !== false
 
-  // 如果需要认证且未登录，则重定向到登录页
-  if (requiresAuth && !isAuthenticated()) {
-    next({ name: 'Login' })
-  }
-  // 如果已登录且访问登录页，则重定向到首页
-  else if (isAuthenticated() && to.name === 'Login') {
-    next({ name: 'Home' })
-  }
-  // 其他情况正常导航
-  else {
-    next()
-  }
-})
+//   // 如果需要认证且未登录，则重定向到登录页
+//   if (requiresAuth && !isAuthenticated()) {
+//     next({ name: 'Login' })
+//   }
+//   // 如果已登录且访问登录页，则重定向到首页
+//   else if (isAuthenticated() && to.name === 'Login') {
+//     next({ name: 'Home' })
+//   }
+//   // 其他情况正常导航
+//   else {
+//     next()
+//   }
+// })
 
 // 全局后置守卫（可选，用于日志记录等）
 router.afterEach((to: RouteLocationNormalized, from: RouteLocationNormalized) => {
