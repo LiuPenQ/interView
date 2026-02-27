@@ -3,7 +3,7 @@ import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { isAuthenticated } from '../utils/auth'
 
 const router = createRouter({
-  history: createWebHistory('/'),
+  history: createWebHistory('/interView/'),
   routes: [
     {
       path: '/',
