@@ -14,12 +14,11 @@ export default defineConfig(({ mode, command }) => {
         viteCompression({
           algorithm: 'gzip',
           threshold: 10240,
-          deleteOriginFile: false,
-          verbose: true
+          deleteOriginFile: false
         }),
         visualizer({
           open: true,
-          filename: 'docs/stats.html'
+          filename: 'docs'
         })
       ] : [])
     ],
