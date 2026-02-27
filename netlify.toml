@@ -1,7 +1,15 @@
 [build]
   publish = "docs"
 
+# 所有静态资源文件，正常返回
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
+
+# 所有非文件请求（没有扩展名的），返回 index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  conditions = {Path = "!/assets/*"}
