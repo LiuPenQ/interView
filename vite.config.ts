@@ -8,6 +8,7 @@ export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
+    base: '/interview-flow/',
     plugins: [
       vue(),
       ...(command === 'build' ? [
@@ -22,13 +23,11 @@ export default defineConfig(({ mode, command }) => {
         })
       ] : [])
     ],
-
     resolve: {
       alias: {
         '@': resolve(__dirname, 'src')
       }
     },
-
     server: {
       host: '0.0.0.0',
       port: 3000,
@@ -42,7 +41,6 @@ export default defineConfig(({ mode, command }) => {
         }
       }
     },
-
     build: {
       target: 'es2015',
       outDir: 'docs',
@@ -60,12 +58,10 @@ export default defineConfig(({ mode, command }) => {
       chunkSizeWarningLimit: 1000,
       assetsInlineLimit: 4096
     },
-
     optimizeDeps: {
       include: ['vue', 'vue-router', 'element-plus', 'vuex'],
       exclude: []
     },
-
     css: {
       preprocessorOptions: {
         scss: {
