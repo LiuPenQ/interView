@@ -18,7 +18,7 @@ export default defineConfig(({ mode, command }) => {
         }),
         visualizer({
           open: true,
-          filename: 'docs'
+          filename: 'dist-analysis.html'
         })
       ] : [])
     ],
