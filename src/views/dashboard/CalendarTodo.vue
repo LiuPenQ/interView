@@ -225,7 +225,7 @@ const saveTodo = async () => {
 
       await api.todo.create(todoData)
     }
-
+    
     await loadTodos() // 加载所有任务
     resetTodoForm()
     showTodoModal.value = false
@@ -339,7 +339,7 @@ onMounted(() => {
             <div class="day-number">{{ day.day }}</div>
             <div v-if="getTodoCountForDate(day.date) > 0" class="todo-indicator">
               <span class="todo-count">{{ getCompletedTodoCountForDate(day.date) }}/{{ getTodoCountForDate(day.date)
-                }}</span>
+              }}</span>
             </div>
           </div>
         </div>
@@ -406,8 +406,7 @@ onMounted(() => {
 
 
     <!-- 任务模态框（新建/编辑） -->
-    <Dialog :visible="showTodoModal" :title="isEditMode ? '编辑任务' : `添加任务 - ${selectedDate}`"
-      @close="showTodoModal = false">
+    <Dialog :visible="showTodoModal" :title="isEditMode ? '编辑任务' : `添加任务 - ${selectedDate}`" @close="showTodoModal = false">
       <template #body>
         <form @submit.prevent="saveTodo">
           <div class="form-group">
@@ -433,7 +432,7 @@ onMounted(() => {
       </template>
     </Dialog>
 
-
+    
   </div>
 
 
