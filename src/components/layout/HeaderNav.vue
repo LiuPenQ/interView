@@ -5,7 +5,8 @@
         <!-- <span class="logo-text">面试助手</span> -->
       </div>
 
-      <nav class="main-nav">
+      <!-- 桌面端导航 -->
+      <nav class="main-nav desktop-nav">
         <template v-for="navItem in navItems" :key="navItem.key">
           <template v-if="!navItem.children">
             <router-link :to="navItem.path" class="nav-item" :class="{ 'active': isActive(navItem) }">
@@ -53,7 +54,7 @@
         </svg>
       </button>
 
-      <div class="user-menu" @mouseenter="showUserMenu = true" @mouseleave="hideUserMenu()">
+      <div class="user-menu" @mouseenter="showUserMenuEvent()" @mouseleave="hideUserMenu()">
         <button class="user-avatar-btn">
           <div class="avatar">
             <span class="avatar-text">{{ (user?.username || 'U').charAt(0).toUpperCase() }}</span>
@@ -61,7 +62,6 @@
         </button>
 
         <div v-if="showUserMenu" class="user-dropdown">
-          <div class="dropdown-arrow"></div>
           <div class="dropdown-content">
             <div class="user-info-section">
               <div class="dropdown-avatar">
@@ -95,7 +95,70 @@
           </div>
         </div>
       </div>
+
+      <!-- 移动端汉堡菜单按钮 -->
+      <button class="hamburger-btn" @click="toggleMobileMenu" :class="{ 'active': showMobileMenu }">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
     </div>
+
+    <!-- 移动端导航抽屉 -->
+    <Teleport to="body">
+      <Transition name="mobile-menu">
+        <div v-if="showMobileMenu" class="mobile-menu-overlay" @click="closeMobileMenu">
+          <div class="mobile-menu-drawer" @click.stop>
+            <div class="mobile-menu-header">
+              <span class="mobile-menu-title">导航菜单</span>
+              <button class="mobile-close-btn" @click="closeMobileMenu">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <nav class="mobile-nav">
+              <template v-for="navItem in navItems" :key="navItem.key">
+                <template v-if="!navItem.children">
+                  <router-link :to="navItem.path" class="mobile-nav-item" :class="{ 'active': isActive(navItem) }"
+                    @click="closeMobileMenu">
+                    <component v-if="navItem.icon" :is="navItem.icon" class="nav-icon"></component>
+                    <span class="nav-label">{{ navItem.label }}</span>
+                  </router-link>
+                </template>
+
+                <template v-else>
+                  <div class="mobile-nav-group">
+                    <div class="mobile-nav-item mobile-dropdown-trigger" :class="{ 'active': isActive(navItem) }"
+                      @click="toggleMobileDropdown(navItem.key)">
+                      <component v-if="navItem.icon" :is="navItem.icon" class="nav-icon"></component>
+                      <span class="nav-label">{{ navItem.label }}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" class="nav-arrow"
+                        :class="{ 'rotated': mobileDropdowns[navItem.key] }" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+
+                    <Transition name="expand">
+                      <div v-if="mobileDropdowns[navItem.key]" class="mobile-dropdown-content">
+                        <router-link v-for="child in navItem.children" :key="child.key" :to="child.path"
+                          class="mobile-nav-item mobile-child-item" :class="{ 'active': isActive(child) }"
+                          @click="closeMobileMenu">
+                          <component v-if="child.icon" :is="child.icon" class="nav-icon-sm"></component>
+                          <span class="nav-label">{{ child.label }}</span>
+                        </router-link>
+                      </div>
+                    </Transition>
+                  </div>
+                </template>
+              </template>
+            </nav>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </header>
 </template>
 
@@ -120,6 +183,9 @@ const showDropdowns = reactive<Record<string, boolean>>({})
 const hideTimers = reactive<Record<string, number>>({})
 const showUserMenu = ref(false)
 let userMenuHideTimer: number | null = null
+
+const showMobileMenu = ref(false)
+const mobileDropdowns = reactive<Record<string, boolean>>({})
 
 const DROP_DELAY = 200
 
@@ -361,6 +427,15 @@ const hideDropdown = (key: string) => {
   }, DROP_DELAY)
 }
 
+const showUserMenuEvent = () => {
+  if (userMenuHideTimer) {
+    clearTimeout(userMenuHideTimer)
+  }
+  userMenuHideTimer = window.setTimeout(() => {
+    showUserMenu.value = true
+  }, DROP_DELAY)
+}
+
 const hideUserMenu = () => {
   if (userMenuHideTimer) {
     clearTimeout(userMenuHideTimer)
@@ -385,6 +460,24 @@ const handleLogout = async () => {
     ElMessage.error('退出登录失败')
   }
   showUserMenu.value = false
+}
+
+const toggleMobileMenu = () => {
+  showMobileMenu.value = !showMobileMenu.value
+  if (showMobileMenu.value) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+}
+
+const closeMobileMenu = () => {
+  showMobileMenu.value = false
+  document.body.style.overflow = ''
+}
+
+const toggleMobileDropdown = (key: string) => {
+  mobileDropdowns[key] = !mobileDropdowns[key]
 }
 </script>
 
@@ -607,18 +700,6 @@ const handleLogout = async () => {
   animation: slideDown 0.2s ease;
 }
 
-.dropdown-arrow {
-  position: absolute;
-  top: -8px;
-  right: 16px;
-  width: 16px;
-  height: 16px;
-  background: var(--color-bg-primary);
-  border-left: 1px solid var(--color-border);
-  border-top: 1px solid var(--color-border);
-  transform: rotate(45deg);
-}
-
 .dropdown-content {
   padding: var(--spacing-sm);
 }
@@ -700,5 +781,235 @@ const handleLogout = async () => {
 
 .user-dropdown .dropdown-item:last-child:hover {
   background: rgba(239, 68, 68, 0.1);
+}
+
+/* 汉堡菜单按钮 */
+.hamburger-btn {
+  display: none;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.hamburger-btn:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.hamburger-line {
+  width: 20px;
+  height: 2px;
+  background: var(--color-text-primary);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.hamburger-btn.active .hamburger-line:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger-btn.active .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-btn.active .hamburger-line:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+
+/* 移动端菜单遮罩 */
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+/* 移动端菜单抽屉 */
+.mobile-menu-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 280px;
+  max-width: 80vw;
+  height: 100vh;
+  background: var(--color-bg-primary);
+  box-shadow: -4px 0 16px var(--color-shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mobile-menu-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.mobile-close-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.mobile-close-btn:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.mobile-close-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 移动端导航 */
+.mobile-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+}
+
+.mobile-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.mobile-nav-item:hover {
+  background: var(--color-bg-secondary);
+}
+
+.mobile-nav-item.active {
+  background: rgba(41, 94, 172, 0.1);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.mobile-dropdown-trigger .nav-arrow {
+  transition: transform 0.2s ease;
+}
+
+.mobile-dropdown-trigger .nav-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.mobile-nav-group {
+  margin-bottom: 4px;
+}
+
+.mobile-dropdown-content {
+  padding-left: var(--spacing-lg);
+  overflow: hidden;
+}
+
+.mobile-child-item {
+  font-size: 0.875rem;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+/* 移动端菜单动画 */
+.mobile-menu-enter-active,
+.mobile-menu-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.mobile-menu-enter-active .mobile-menu-drawer,
+.mobile-menu-leave-active .mobile-menu-drawer {
+  transition: transform 0.3s ease;
+}
+
+.mobile-menu-enter-from,
+.mobile-menu-leave-to {
+  opacity: 0;
+}
+
+.mobile-menu-enter-from .mobile-menu-drawer,
+.mobile-menu-leave-to .mobile-menu-drawer {
+  transform: translateX(100%);
+}
+
+/* 展开动画 */
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.expand-enter-to,
+.expand-leave-from {
+  opacity: 1;
+  max-height: 500px;
+}
+
+/* 响应式媒体查询 */
+@media (max-width: 768px) {
+  .header-nav {
+    padding: 0 var(--spacing-md);
+  }
+
+  .desktop-nav {
+    display: none;
+  }
+
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .logo {
+    margin-right: var(--spacing-sm);
+  }
+
+  .header-right {
+    gap: var(--spacing-sm);
+  }
+
+  .user-menu .user-dropdown {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .hamburger-btn {
+    display: none;
+  }
 }
 </style>

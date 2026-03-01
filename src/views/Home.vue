@@ -125,6 +125,9 @@
         </div>
       </div>
     </div>
+
+    <div class="bg-glow glow-1"></div>
+    <div class="bg-glow glow-2"></div>
   </div>
 </template>
 
@@ -152,9 +155,34 @@ const goToProfile = () => {
 
 <style scoped>
 .home-container {
-  padding: var(--spacing-xl);
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: var(--spacing-xl) 200px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glow-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
+  top: -100px;
+  left: -150px;
+}
+
+.glow-2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, var(--color-primary-light) 0%, transparent 70%);
+  bottom: -150px;
+  right: -200px;
 }
 
 .hero-section {
@@ -164,6 +192,8 @@ const goToProfile = () => {
   align-items: center;
   margin-bottom: var(--spacing-3xl);
   padding: var(--spacing-2xl) 0;
+  position: relative;
+  z-index: 1;
 }
 
 .hero-content {
@@ -227,11 +257,6 @@ const goToProfile = () => {
   display: flex;
   gap: var(--spacing-md);
   margin-top: var(--spacing-md);
-}
-
-.hero-visual {
-  display: flex;
-  justify-content: center;
 }
 
 .code-card {
@@ -329,6 +354,8 @@ const goToProfile = () => {
 .skills-section,
 .features-section {
   margin-bottom: var(--spacing-3xl);
+  position: relative;
+  z-index: 1;
 }
 
 .skills-grid,
@@ -413,6 +440,10 @@ const goToProfile = () => {
 }
 
 @media (max-width: 768px) {
+  .home-container {
+    padding: var(--spacing-xl);
+  }
+
   .hero-section {
     grid-template-columns: 1fr;
     gap: var(--spacing-xl);
@@ -420,10 +451,6 @@ const goToProfile = () => {
 
   .greeting {
     font-size: 2rem;
-  }
-
-  .hero-visual {
-    order: -1;
   }
 
   .code-card {

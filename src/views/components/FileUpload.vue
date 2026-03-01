@@ -1,246 +1,320 @@
-<!--
-大文件上传研究页面
-用途：实现分片上传和断点续传功能，研究大文件上传的性能优化
-实现：使用Vue 3 Composition API，通过File.slice()方法分割文件，逐个上传分片
-功能：
-- 支持大文件分片上传
-- 实现断点续传
-- 内存使用优化
-- 上传进度和速度显示
-- 分片大小可调整
-- 网络错误模拟和重试机制
--->
 <template>
-  <div class="file-upload-container p-6 relative">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-xl font-bold">大文件上传研究</h1>
-      <div class="relative">
-        <button class="tech-info-btn" @mouseenter="showTechInfo = true" :title="'显示技术说明'">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <div class="file-upload-wrapper">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <h1 class="page-title">大文件上传</h1>
+        <span class="page-subtitle">支持分片上传、断点续传、Web Worker 优化</span>
+      </div>
+      <div class="header-right">
+        <button class="info-toggle-btn" @click="showTechInfo = !showTechInfo">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
+          <span>技术说明</span>
         </button>
+      </div>
+    </div>
 
-        <!-- 技术说明气泡 -->
-        <div v-if="showTechInfo" class="tech-info-popover" @mouseleave="showTechInfo = false">
-          <div class="tech-info-content">
-            <h2 class="text-lg font-semibold mb-2">技术说明</h2>
-            <div class="space-y-2">
-              <p><strong>分片上传:</strong> 将大文件分割成多个小块（分片），逐个上传，降低单个请求的大小和失败率。</p>
-              <p><strong>断点续传:</strong> 记录已上传的分片，支持从失败或暂停的地方继续上传，不需要重新上传整个文件。</p>
-              <p><strong>内存优化:</strong> 针对大文件上传进行了内存使用优化，避免页面崩溃。</p>
-              <p><strong>实现原理:</strong></p>
-              <ul class="list-disc pl-6 space-y-1">
-                <li>使用 File.slice() 方法分割文件</li>
-                <li>延迟创建分片的 Blob 对象，避免一次性占用过多内存</li>
-                <li>上传完成后释放 Blob 对象占用的内存</li>
-                <li>限制最大文件大小（1.5GB）和最大分片数（2000个）</li>
-                <li>记录已上传的分片索引，支持断点续传</li>
-                <li>支持暂停和恢复上传</li>
-                <li>计算上传进度、速度和剩余时间</li>
-                <li>模拟网络错误和重试机制</li>
-                <li>定期触发垃圾回收（如果浏览器支持）</li>
-              </ul>
-              <p><strong>性能建议:</strong></p>
-              <ul class="list-disc pl-6 space-y-1">
-                <li>对于大文件，建议使用10-20MB的分片大小</li>
-                <li>避免同时上传多个大文件</li>
-                <li>如果遇到内存使用过高的错误，尝试增大分片大小</li>
-                <li>对于特别大的文件，考虑使用专业的文件上传服务</li>
-              </ul>
+    <!-- 技术说明面板 -->
+    <transition name="slide-down">
+      <div v-if="showTechInfo" class="tech-panel">
+        <div class="tech-content">
+          <div class="tech-grid">
+            <div class="tech-item">
+              <div class="tech-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+              <h3>分片上传</h3>
+              <p>将大文件分割成多个小块逐个上传，降低失败率</p>
+            </div>
+            <div class="tech-item">
+              <div class="tech-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3>断点续传</h3>
+              <p>记录已上传分片，支持暂停/恢复，无需重传</p>
+            </div>
+            <div class="tech-item">
+              <div class="tech-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+              </div>
+              <h3>Web Worker</h3>
+              <p>后台线程处理分片和Hash，不阻塞主线程</p>
+            </div>
+            <div class="tech-item">
+              <div class="tech-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3>内存优化</h3>
+              <p>延迟创建Blob，智能垃圾回收，避免内存溢出</p>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </transition>
 
-    <!-- 文件选择区域 -->
-    <div class="file-selector mb-8">
-      <h2 class="text-xl font-semibold mb-4">文件选择</h2>
-      <div class="flex items-center gap-4">
-        <input ref="fileInput" type="file" class="hidden" @change="handleFileChange" />
-        <button class="btn btn-primary" @click="selectFile" :disabled="uploadStatus === 'uploading'">
-          选择文件
-        </button>
-        <div class="file-info flex-1">
-          <p class="file-name">{{ fileName }}</p>
-          <p class="file-size text-sm" style="color: var(--color-text-secondary);">{{ fileSize }}</p>
-          <p v-if="memoryUsage > 0" class="text-sm" style="color: var(--color-text-secondary);">
-            预估内存使用: {{ memoryUsage.toFixed(2) }} MB
-          </p>
-        </div>
-      </div>
-      <!-- 错误消息 -->
-      <div v-if="errorMessage" class="error-message mt-4 p-3 rounded-md"
-        style="background-color: rgba(239, 68, 68, 0.1); color: #ef4444;">
-        {{ errorMessage }}
-      </div>
-    </div>
+    <!-- 主内容区 - 左右布局 -->
+    <div class="main-content">
+      <!-- 左侧面板 -->
+      <div class="left-panel">
+        <!-- 文件选择卡片 -->
+        <div class="card file-card">
+          <div class="card-header">
+            <h2 class="card-title">文件选择</h2>
+          </div>
+          <div class="card-body">
+            <div class="file-dropzone" @click="selectFile" :class="{ 'dragging': isDragging }"
+              @dragover.prevent="isDragging = true" @dragleave="isDragging = false" @drop.prevent="handleDrop">
+              <input ref="fileInput" type="file" class="hidden" @change="handleFileChange" />
+              <div class="dropzone-content">
+                <div class="dropzone-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <p class="dropzone-text">点击或拖拽文件到此处</p>
+                <p class="dropzone-hint">支持任意类型文件，最大 1.5GB</p>
+              </div>
+            </div>
 
-    <!-- 上传设置 -->
-    <div class="upload-settings mb-8">
-      <h2 class="text-xl font-semibold mb-4">上传设置</h2>
-      <div class="form-group">
-        <label class="form-label">分片大小</label>
-        <div class="flex items-center gap-4">
-          <input type="range" v-model.number="chunkSize" :min="1024 * 1024" :max="20 * 1024 * 1024" :step="1024 * 1024"
-            :disabled="uploadStatus === 'uploading'" />
-          <span>{{ chunkSize / (1024 * 1024) }} MB</span>
-        </div>
-        <p class="text-sm mt-2" style="color: var(--color-text-secondary);">
-          提示：对于大文件，建议使用10-20MB的分片大小
-        </p>
-      </div>
-      <div class="form-group mt-6">
-        <label class="form-label">并发控制</label>
-        <div class="flex items-center gap-4">
-          <input type="range" v-model.number="concurrentCount" :min="1" :max="10" :step="1"
-            :disabled="uploadStatus === 'uploading'" />
-          <span>{{ concurrentCount }} 个并发</span>
-        </div>
-        <p class="text-sm mt-2" style="color: var(--color-text-secondary);">
-          提示：默认3个并发，防止把后端打崩
-        </p>
-      </div>
-      <div class="form-group mt-4">
-        <p class="text-sm">
-          总分片数: {{ totalChunks }}
-          <span v-if="file"> ({{ chunkSize }} bytes 每片)</span>
-        </p>
-      </div>
-    </div>
+            <!-- 文件信息 -->
+            <div v-if="file" class="file-details">
+              <div class="file-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div class="file-meta">
+                <p class="file-name">{{ fileName }}</p>
+                <p class="file-size">{{ fileSize }}</p>
+              </div>
+              <button class="file-remove" @click="cancelUpload">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-    <!-- 上传状态 -->
-    <div class="upload-status mb-8">
-      <h2 class="text-xl font-semibold mb-4">上传状态</h2>
-      <div class="status-card p-4 rounded-lg">
-        <div class="status-item mb-2">
-          <span class="status-label">状态:</span>
-          <span class="status-value" :class="{
-            'text-green-500': uploadStatus === 'completed',
-            'text-blue-500': uploadStatus === 'uploading',
-            'text-yellow-500': uploadStatus === 'paused',
-            'text-red-500': uploadStatus === 'error'
-          }">
-            {{ {
-              idle: '就绪',
-              uploading: '上传中',
-              paused: '已暂停',
-              completed: '已完成',
-              error: '上传失败'
-            }[uploadStatus] }}
-          </span>
-        </div>
-        <div class="status-item mb-2">
-          <span class="status-label">进度:</span>
-          <span class="status-value">{{ uploadProgress }}%</span>
-        </div>
-        <div class="status-item mb-2">
-          <span class="status-label">当前分片:</span>
-          <span class="status-value">{{ currentChunk }}/{{ totalChunks }}</span>
-        </div>
-        <div class="status-item mb-2">
-          <span class="status-label">上传速度:</span>
-          <span class="status-value">{{ uploadSpeed }} KB/s</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">预计剩余时间:</span>
-          <span class="status-value">{{ estimatedTime }} 秒</span>
-        </div>
-      </div>
-    </div>
+            <!-- Hash 显示 -->
+            <div v-if="fileHash" class="hash-info">
+              <span class="hash-label">文件Hash:</span>
+              <code class="hash-value">{{ fileHash.substring(0, 24) }}...</code>
+            </div>
+            <div v-if="isCalculatingHash" class="hash-calculating">
+              <span class="spinner"></span>
+              <span>正在计算文件Hash...</span>
+            </div>
 
-    <!-- 内存监控 -->
-    <div class="memory-monitor mb-8">
-      <h2 class="text-xl font-semibold mb-4">内存监控</h2>
-      <div class="memory-chart p-4 rounded-lg" style="background-color: var(--color-bg-secondary);">
-        <div class="memory-grid" style="height: 100px; width: 100%; position: relative;">
-          <div v-for="(memory, index) in memoryHistory" :key="index" class="memory-bar" :style="{
-            position: 'absolute',
-            bottom: '0',
-            left: `${(index / (maxMemoryHistory - 1)) * 100}%`,
-            width: `${100 / maxMemoryHistory}%`,
-            height: `${Math.min(100, (memory / 104857600) * 100)}%`, // 最大100MB
-            backgroundColor: 'var(--color-primary)',
-            opacity: '0.7',
-            borderRadius: '2px 2px 0 0',
-            transition: 'height 0.3s ease'
-          }"></div>
+            <!-- 错误提示 -->
+            <div v-if="errorMessage" class="error-banner">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{{ errorMessage }}</span>
+            </div>
+          </div>
         </div>
-        <div class="memory-stats mt-2 flex justify-between text-sm">
-          <span>内存使用趋势 (最近60秒)</span>
-          <span v-if="memoryHistory.length > 0">
-            当前: {{ ((memoryHistory[memoryHistory.length - 1] || 0) / 1048576).toFixed(2) }} MB
-          </span>
+
+        <!-- 上传设置卡片 -->
+        <div class="card settings-card">
+          <div class="card-header">
+            <h2 class="card-title">上传设置</h2>
+          </div>
+          <div class="card-body">
+            <div class="setting-item">
+              <div class="setting-header">
+                <label class="setting-label">分片大小</label>
+                <span class="setting-value">{{ chunkSize / (1024 * 1024) }} MB</span>
+              </div>
+              <input type="range" class="setting-range" v-model.number="chunkSize" :min="1024 * 1024"
+                :max="20 * 1024 * 1024" :step="1024 * 1024" :disabled="uploadStatus === 'uploading'" />
+              <p class="setting-hint">大文件建议 10-20MB</p>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-header">
+                <label class="setting-label">并发数</label>
+                <span class="setting-value">{{ concurrentCount }} 个</span>
+              </div>
+              <input type="range" class="setting-range" v-model.number="concurrentCount" :min="1" :max="10" :step="1"
+                :disabled="uploadStatus === 'uploading'" />
+              <p class="setting-hint">过高可能压垮服务器</p>
+            </div>
+
+            <div class="setting-stats">
+              <div class="stat-item">
+                <span class="stat-label">总分片</span>
+                <span class="stat-value">{{ chunks.length || '-' }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">预估内存</span>
+                <span class="stat-value">{{ memoryUsage > 0 ? memoryUsage.toFixed(1) + ' MB' : '-' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 控制按钮卡片 -->
+        <div class="card control-card">
+          <div class="card-body">
+            <div class="control-buttons">
+              <button class="control-btn primary" @click="startUpload"
+                :disabled="!file || uploadStatus === 'uploading' || uploadStatus === 'completed' || isProcessingFile">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span>{{ uploadStatus === 'uploading' ? '上传中...' : '开始上传' }}</span>
+              </button>
+              <button class="control-btn" @click="pauseUpload" :disabled="uploadStatus !== 'uploading'">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>暂停</span>
+              </button>
+              <button class="control-btn" @click="resumeUpload" :disabled="uploadStatus !== 'paused'">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>恢复</span>
+              </button>
+              <button class="control-btn warning" @click="restartUpload" :disabled="!file">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>重试</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 上传进度条 -->
-    <div class="upload-progress mb-8">
-      <div class="progress-bar bg-gray-200 rounded-full h-4 overflow-hidden">
-        <div class="progress-fill h-full rounded-full transition-all duration-300" :class="{
-          'bg-blue-500': uploadStatus === 'uploading',
-          'bg-green-500': uploadStatus === 'completed',
-          'bg-yellow-500': uploadStatus === 'paused',
-          'bg-red-500': uploadStatus === 'error'
-        }" :style="{ width: `${uploadProgress}%` }"></div>
-      </div>
-    </div>
+      <!-- 右侧面板 -->
+      <div class="right-panel">
+        <!-- 上传状态卡片 -->
+        <div class="card status-card">
+          <div class="card-header">
+            <h2 class="card-title">上传状态</h2>
+            <span class="status-badge" :class="uploadStatus">
+              {{ { idle: '就绪', uploading: '上传中', paused: '已暂停', completed: '已完成', error: '失败' }[uploadStatus] }}
+            </span>
+          </div>
+          <div class="card-body">
+            <!-- 进度环 -->
+            <div class="progress-ring-wrapper">
+              <svg class="progress-ring" viewBox="0 0 120 120">
+                <circle class="progress-ring-bg" cx="60" cy="60" r="52" />
+                <circle class="progress-ring-fill" cx="60" cy="60" r="52" :stroke-dasharray="326.7"
+                  :stroke-dashoffset="326.7 - (326.7 * uploadProgress / 100)" />
+              </svg>
+              <div class="progress-ring-text">
+                <span class="progress-value">{{ uploadProgress }}</span>
+                <span class="progress-unit">%</span>
+              </div>
+            </div>
 
-    <!-- 分片信息 -->
-    <div class="chunks-info mb-8">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold">分片信息</h2>
-        <button class="btn btn-secondary btn-sm" @click="showChunkDetails = !showChunkDetails"
-          :disabled="chunks.length === 0">
-          {{ showChunkDetails ? '隐藏详情' : '显示详情' }}
-        </button>
-      </div>
-      <div class="form-group mb-4">
-        <p class="text-sm">
-          总分片数: {{ chunks.length }} | 已上传: {{ uploadedChunks.size }} | 失败: {{chunks.filter(c => c.error).length}}
-        </p>
-      </div>
-      <!-- 分片详情（可折叠） -->
-      <div v-if="showChunkDetails && chunks.length > 0" class="chunks-container overflow-auto max-h-60">
-        <div class="chunks-grid grid grid-cols-20 gap-1">
-          <div v-for="chunk in chunks" :key="chunk.index" class="chunk-item w-3 h-3 rounded-full transition-all" :style="{
-            backgroundColor: !chunk.uploaded && !chunk.error ? 'var(--color-bg-tertiary)' :
-              chunk.uploaded ? 'var(--color-primary)' : 'var(--color-border)',
-            boxShadow: chunk.index === currentChunk - 1 ? '0 0 0 2px var(--color-primary)' : 'none'
-          }" :title="`分片 ${chunk.index + 1}: ${(chunk.size / 1024 / 1024).toFixed(2)}MB`"></div>
+            <!-- 状态列表 -->
+            <div class="status-list">
+              <div class="status-row">
+                <span class="status-label">当前分片</span>
+                <span class="status-val">{{ currentChunk }} / {{ totalChunks }}</span>
+              </div>
+              <div class="status-row">
+                <span class="status-label">上传速度</span>
+                <span class="status-val">{{ uploadSpeed }} KB/s</span>
+              </div>
+              <div class="status-row">
+                <span class="status-label">剩余时间</span>
+                <span class="status-val">{{ estimatedTime || '-' }} 秒</span>
+              </div>
+              <div class="status-row">
+                <span class="status-label">已上传</span>
+                <span class="status-val">{{ uploadedChunks.size }} / {{ chunks.length }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div v-else-if="chunks.length > 0" class="text-center py-4"
-        style="background-color: var(--color-bg-secondary); border-radius: var(--radius-md);">
-        <p class="text-sm" style="color: var(--color-text-secondary);">
-          分片详情已隐藏，点击"显示详情"按钮查看
-        </p>
-      </div>
-    </div>
 
-    <!-- 控制按钮 -->
-    <div class="upload-controls">
-      <h2 class="text-xl font-semibold mb-4">控制</h2>
-      <div class="flex gap-4">
-        <button class="btn btn-primary" @click="startUpload"
-          :disabled="!file || uploadStatus === 'uploading' || uploadStatus === 'completed'">
-          开始上传
-        </button>
-        <button class="btn btn-secondary" @click="pauseUpload" :disabled="uploadStatus !== 'uploading'">
-          暂停
-        </button>
-        <button class="btn btn-secondary" @click="resumeUpload" :disabled="uploadStatus !== 'paused'">
-          恢复
-        </button>
-        <button class="btn btn-danger" @click="restartUpload" :disabled="!file">
-          重新上传
-        </button>
-        <button class="btn btn-danger" @click="cancelUpload" :disabled="!file">
-          取消
-        </button>
+        <!-- 内存监控卡片 -->
+        <div class="card memory-card">
+          <div class="card-header">
+            <h2 class="card-title">内存监控</h2>
+            <span v-if="memoryHistory.length" class="memory-current">
+              {{ ((memoryHistory[memoryHistory.length - 1] || 0) / 1048576).toFixed(1) }} MB
+            </span>
+          </div>
+          <div class="card-body">
+            <div class="memory-chart">
+              <div class="chart-bars">
+                <div v-for="(memory, index) in memoryHistory.slice(-60)" :key="index" class="chart-bar" :style="{
+                  height: `${Math.min(100, (memory / 104857600) * 100)}%`
+                }"></div>
+              </div>
+              <div class="chart-axis">
+                <span>60秒</span>
+                <span>30秒</span>
+                <span>现在</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分片详情卡片 -->
+        <div class="card chunks-card">
+          <div class="card-header">
+            <h2 class="card-title">分片详情</h2>
+            <button class="toggle-btn" @click="showChunkDetails = !showChunkDetails" :disabled="!chunks.length">
+              {{ showChunkDetails ? '收起' : '展开' }}
+            </button>
+          </div>
+          <div class="card-body" :class="{ expanded: showChunkDetails }">
+            <div v-if="chunks.length" class="chunks-visual">
+              <div class="chunks-grid">
+                <div v-for="chunk in chunks" :key="chunk.index" class="chunk-dot" :class="{
+                  'uploaded': chunk.uploaded,
+                  'error': chunk.error,
+                  'current': chunk.index === currentChunk - 1,
+                  'pending': !chunk.uploaded && !chunk.error && chunk.index !== currentChunk - 1
+                }" :title="`分片 ${chunk.index + 1}`"></div>
+              </div>
+              <div class="chunks-legend">
+                <span class="legend-item"><span class="dot uploaded"></span>已上传</span>
+                <span class="legend-item"><span class="dot pending"></span>待上传</span>
+                <span class="legend-item"><span class="dot error"></span>失败</span>
+                <span class="legend-item"><span class="dot current"></span>当前</span>
+              </div>
+            </div>
+            <div v-else class="chunks-empty">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <span>选择文件后显示分片信息</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -248,6 +322,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import FileWorker from '@/workers/fileWorker?worker'
 
 // 上传状态类型
 type UploadStatus = 'idle' | 'uploading' | 'paused' | 'completed' | 'error'
@@ -258,65 +333,129 @@ interface Chunk {
   start: number
   end: number
   size: number
-  blob?: Blob // 延迟创建blob，避免内存占用过高
+  blob?: Blob
   uploaded: boolean
   error: boolean
 }
 
-// 文件上传状态
+// Worker 消息类型
+interface ChunkResult {
+  type: 'chunk'
+  chunks: Array<{ index: number; start: number; end: number; size: number }>
+  totalChunks: number
+  chunkSize: number
+}
+
+interface HashResult {
+  type: 'hash'
+  hash: string
+  algorithm: string
+}
+
+interface ErrorResult {
+  type: 'error'
+  message: string
+}
+
+// 响应式状态
 const file = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadStatus = ref<UploadStatus>('idle')
 const uploadProgress = ref(0)
 const currentChunk = ref(0)
 const chunks = ref<Chunk[]>([])
-const chunkSize = ref(1024 * 1024 * 5) // 5MB 分片
-const concurrentCount = ref(3) // 并发数
+const chunkSize = ref(1024 * 1024 * 5)
+const concurrentCount = ref(3)
 const uploadedChunks = ref<Set<number>>(new Set())
 const uploadSpeed = ref(0)
 const estimatedTime = ref(0)
-const maxFileSize = ref(1024 * 1024 * 1500) // 1.5GB 最大文件大小
+const maxFileSize = ref(1024 * 1024 * 1500)
 const errorMessage = ref('')
-const showChunkDetails = ref(false) // 控制是否显示分片详情
+const showChunkDetails = ref(false)
 const memoryUsage = ref(0)
 const uploadQueue = ref<Chunk[]>([])
 const isProcessingQueue = ref(false)
-const showTechInfo = ref(false) // 控制是否显示技术说明
+const showTechInfo = ref(false)
+const isProcessingFile = ref(false)
+const isCalculatingHash = ref(false)
+const fileHash = ref('')
+const isDragging = ref(false)
 
-// 模拟后端存储已上传分片
+// Web Worker 实例
+let fileWorker: Worker | null = null
+
+// 初始化 Worker
+const initWorker = () => {
+  if (!fileWorker) {
+    fileWorker = new FileWorker()
+    fileWorker.onmessage = (event: MessageEvent<ChunkResult | HashResult | ErrorResult>) => {
+      const data = event.data
+      if (data.type === 'chunk') {
+        handleChunkResult(data as ChunkResult)
+      } else if (data.type === 'hash') {
+        handleHashResult(data as HashResult)
+      } else if (data.type === 'error') {
+        const errorResult = data as ErrorResult
+        errorMessage.value = errorResult.message
+        isProcessingFile.value = false
+        isCalculatingHash.value = false
+      }
+    }
+    fileWorker.onerror = (error) => {
+      console.error('Worker error:', error)
+      errorMessage.value = '文件处理失败'
+      isProcessingFile.value = false
+      isCalculatingHash.value = false
+    }
+  }
+}
+
+const terminateWorker = () => {
+  if (fileWorker) {
+    fileWorker.terminate()
+    fileWorker = null
+  }
+}
+
+const handleChunkResult = (result: ChunkResult) => {
+  chunks.value = result.chunks.map(c => ({ ...c, uploaded: false, error: false }))
+  uploadQueue.value = [...chunks.value]
+  memoryUsage.value = Math.min(chunks.value.length * result.chunkSize / (1024 * 1024), 500)
+  isProcessingFile.value = false
+}
+
+const handleHashResult = (result: HashResult) => {
+  fileHash.value = result.hash
+  isCalculatingHash.value = false
+}
+
+const splitFileWithWorker = () => {
+  if (!file.value || !fileWorker) return
+  isProcessingFile.value = true
+  fileWorker.postMessage({ type: 'chunk', file: file.value, chunkSize: chunkSize.value })
+}
+
+const calculateHashWithWorker = () => {
+  if (!file.value || !fileWorker) return
+  isCalculatingHash.value = true
+  fileWorker.postMessage({ type: 'hash', file: file.value })
+}
+
 const serverMock = ref<Set<number>>(new Set())
 
-// 扩展Performance接口，添加memory属性
 interface PerformanceWithMemory extends Performance {
-  memory: {
-    usedJSHeapSize: number
-    totalJSHeapSize: number
-    jsHeapSizeLimit: number
-  }
+  memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number }
 }
 
-// 类型断言工具函数
 const getPerformanceWithMemory = (): PerformanceWithMemory | null => {
-  if ('memory' in performance) {
-    return performance as PerformanceWithMemory
-  }
-  return null
+  return 'memory' in performance ? performance as PerformanceWithMemory : null
 }
 
-// 内存监控
 const memoryHistory = ref<number[]>([])
-const maxMemoryHistory = 60 // 最多记录60秒的内存使用情况
+const maxMemoryHistory = 60
 
-// 计算属性
-const totalChunks = computed(() => {
-  if (!file.value) return 0
-  return Math.ceil(file.value.size / chunkSize.value)
-})
-
-const fileName = computed(() => {
-  return file.value?.name || '未选择文件'
-})
-
+const totalChunks = computed(() => file.value ? Math.ceil(file.value.size / chunkSize.value) : 0)
+const fileName = computed(() => file.value?.name || '未选择文件')
 const fileSize = computed(() => {
   if (!file.value) return '0 B'
   const size = file.value.size
@@ -326,27 +465,44 @@ const fileSize = computed(() => {
   return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`
 })
 
-// 处理文件选择
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files[0]) {
     const selectedFile = target.files[0]
-
-    // 检查文件大小
     if (selectedFile.size > maxFileSize.value) {
       errorMessage.value = `文件大小超过限制（最大 ${maxFileSize.value / (1024 * 1024)}MB）`
       uploadStatus.value = 'error'
       return
     }
-
     errorMessage.value = ''
     file.value = selectedFile
+    fileHash.value = ''
     resetUpload()
-    splitFileIntoChunks()
+    initWorker()
+    splitFileWithWorker()
+    calculateHashWithWorker()
   }
 }
 
-// 重置上传状态
+const handleDrop = (event: DragEvent) => {
+  isDragging.value = false
+  if (event.dataTransfer?.files && event.dataTransfer.files[0]) {
+    const selectedFile = event.dataTransfer.files[0]
+    if (selectedFile.size > maxFileSize.value) {
+      errorMessage.value = `文件大小超过限制（最大 ${maxFileSize.value / (1024 * 1024)}MB）`
+      uploadStatus.value = 'error'
+      return
+    }
+    errorMessage.value = ''
+    file.value = selectedFile
+    fileHash.value = ''
+    resetUpload()
+    initWorker()
+    splitFileWithWorker()
+    calculateHashWithWorker()
+  }
+}
+
 const resetUpload = () => {
   uploadStatus.value = 'idle'
   uploadProgress.value = 0
@@ -358,481 +514,934 @@ const resetUpload = () => {
   errorMessage.value = ''
   memoryUsage.value = 0
   serverMock.value = new Set()
-  // 保留内存历史记录，以便查看趋势
 }
 
-// 将文件分割成分片（仅创建分片信息，不立即创建blob）
-const splitFileIntoChunks = () => {
-  if (!file.value) return
-
-  chunks.value = []
-  uploadQueue.value = []
-  const totalSize = file.value.size
-  let start = 0
-  let index = 0
-
-  // 对于大文件，使用更大的分片大小
-  const targetChunkSize = file.value.size > 1024 * 1024 * 200 ? Math.max(chunkSize.value, 1024 * 1024 * 10) : chunkSize.value
-
-  // 计算安全的分片大小，确保不超过浏览器限制
-  const safeChunkSize = Math.max(targetChunkSize, Math.ceil(totalSize / 2000)) // 最多2000个分片
-
-  while (start < totalSize) {
-    const end = Math.min(start + safeChunkSize, totalSize)
-    const size = end - start
-
-    const chunk = {
-      index,
-      start,
-      end,
-      size,
-      uploaded: false,
-      error: false
-    }
-
-    chunks.value.push(chunk)
-    uploadQueue.value.push(chunk)
-
-    start = end
-    index++
-  }
-
-  // 计算预估内存使用
-  memoryUsage.value = Math.min(chunks.value.length * safeChunkSize / (1024 * 1024), 500) // 限制显示的内存使用值
-
-  console.log(`文件分片完成: ${chunks.value.length}个分片，每个分片${(safeChunkSize / 1024 / 1024).toFixed(2)}MB`)
-}
-
-// 获取分片的blob（延迟创建）
 const getChunkBlob = (chunk: Chunk): Blob => {
-  if (!file.value) throw new Error('No file selected')
-  if (!chunk.blob) {
-    chunk.blob = file.value.slice(chunk.start, chunk.end)
-  }
+  if (!file.value) throw new Error('No file')
+  if (!chunk.blob) chunk.blob = file.value.slice(chunk.start, chunk.end)
   return chunk.blob
 }
 
-// 模拟上传分片
 const uploadChunk = async (chunk: Chunk): Promise<boolean> => {
   try {
-    // 模拟后端返回：这个分片是否已上传
-    if (serverMock.value.has(chunk.index)) {
-      console.log(`分片 ${chunk.index + 1} 已存在，秒传`)
-      return true
-    }
-
-    // 延迟创建blob，避免内存占用过高
+    if (serverMock.value.has(chunk.index)) return true
     const blob = getChunkBlob(chunk)
-
-    // 模拟网络延迟（根据分片大小调整延迟时间）
     const delay = Math.min(500, Math.max(100, chunk.size / 1024 / 1024 * 100))
     await new Promise(resolve => setTimeout(resolve, delay))
-
-    // 模拟上传成功（实际项目中这里应该发送HTTP请求）
-    console.log(`上传分片 ${chunk.index + 1}/${totalChunks.value} (${(chunk.size / 1024 / 1024).toFixed(2)}MB)`)
-
-    // 释放blob占用的内存
     chunk.blob = undefined
-
-    // 模拟5%的失败率
-    // if (Math.random() < 0.05) {
-    //   return false
-    // }
-
-    // 模拟后端存储已上传分片
     serverMock.value.add(chunk.index)
-
     return true
   } catch (error) {
-    console.error('分片上传失败:', error)
+    console.error('Upload failed:', error)
     return false
   }
 }
 
-// 处理单个分片上传
 const processChunk = async (chunk: Chunk, startTime: number): Promise<boolean> => {
   try {
-    // 检查内存使用情况
-    if (memoryUsage.value > 100) {
-      // 短暂暂停，让浏览器有时间进行垃圾回收
-      await new Promise(resolve => setTimeout(resolve, 500))
-    }
-
+    if (memoryUsage.value > 100) await new Promise(resolve => setTimeout(resolve, 500))
     const success = await uploadChunk(chunk)
-
     if (success) {
       chunk.uploaded = true
       chunk.error = false
       uploadedChunks.value.add(chunk.index)
       currentChunk.value = chunk.index + 1
-
-      // 基于实际已上传的分片计算总上传字节数
-      const totalUploadedBytes = Array.from(uploadedChunks.value).reduce((sum, index) => {
-        const c = chunks.value[index]
-        return sum + (c ? c.size : 0)
-      }, 0)
-
-      // 计算上传进度
-      uploadProgress.value = Math.round((totalUploadedBytes / file.value!.size) * 100)
-
-      // 计算上传速度
-      const elapsedTime = (Date.now() - startTime) / 1000
-      uploadSpeed.value = Math.round(totalUploadedBytes / elapsedTime / 1024) // KB/s
-
-      // 计算剩余时间
-      const remainingBytes = file.value!.size - totalUploadedBytes
-      estimatedTime.value = Math.round(remainingBytes / Math.max(1, uploadSpeed.value * 1024)) // 秒
-
-      // 每上传5个分片，强制垃圾回收（如果浏览器支持）
-      if ((chunk.index + 1) % 5 === 0 && typeof (window as any).gc === 'function') {
-        try {
-          (window as any).gc()
-        } catch (e) {
-          // 静默忽略，避免运行时报错
-        }
-      }
-
-      return true
+      const totalUploaded = Array.from(uploadedChunks.value).reduce((sum, i) => sum + (chunks.value[i]?.size || 0), 0)
+      uploadProgress.value = Math.round((totalUploaded / file.value!.size) * 100)
+      const elapsed = (Date.now() - startTime) / 1000
+      uploadSpeed.value = Math.round(totalUploaded / elapsed / 1024)
+      const remaining = file.value!.size - totalUploaded
+      estimatedTime.value = Math.round(remaining / Math.max(1, uploadSpeed.value * 1024))
     } else {
       chunk.error = true
-      return false
     }
+    return success
   } catch (error) {
-    console.error('处理分片失败:', error)
     chunk.error = true
     return false
   }
 }
 
-// 开始上传
 const startUpload = async () => {
   if (!file.value || uploadStatus.value === 'uploading' || isProcessingQueue.value) return
-
   uploadStatus.value = 'uploading'
   errorMessage.value = ''
   isProcessingQueue.value = true
   const startTime = Date.now()
-
   try {
-    // 过滤出未上传的分片
-    const queue = uploadQueue.value.filter(chunk => !uploadedChunks.value.has(chunk.index) && !chunk.error)
-    const pendingChunks = [...queue]
-
-    console.log(`开始上传: ${pendingChunks.length}个分片待上传，并发数: ${concurrentCount.value}`)
-
-    // 并发控制上传
-    while (pendingChunks.length > 0 && uploadStatus.value === 'uploading') {
-      // 取出当前批次的分片
-      const batch = pendingChunks.splice(0, concurrentCount.value)
-      console.log(`处理批次: ${batch.map(c => c.index + 1).join(', ')}`)
-
-      // 并发处理当前批次的分片
-      const batchResults = await Promise.all(
-        batch.map(chunk => processChunk(chunk, startTime))
-      )
-
-      // 检查批次结果
-      const allSuccess = batchResults.every(result => result)
-      if (!allSuccess) {
-        throw new Error('批次上传失败')
-      }
-
-      // 给浏览器一点时间处理其他任务
+    const queue = uploadQueue.value.filter(c => !uploadedChunks.value.has(c.index) && !c.error)
+    while (queue.length > 0 && uploadStatus.value === 'uploading') {
+      const batch = queue.splice(0, concurrentCount.value)
+      const results = await Promise.all(batch.map(c => processChunk(c, startTime)))
+      if (!results.every(r => r)) throw new Error('Batch failed')
       await new Promise(resolve => setTimeout(resolve, 100))
     }
-
     if (uploadStatus.value === 'uploading' && uploadProgress.value === 100) {
       uploadStatus.value = 'completed'
-      console.log('上传完成！')
     }
   } catch (error: any) {
-    console.error('上传失败:', error)
-    errorMessage.value = error.message || '上传失败，请重试'
+    errorMessage.value = error.message || '上传失败'
     uploadStatus.value = 'error'
   } finally {
     isProcessingQueue.value = false
   }
 }
 
-// 暂停上传
-const pauseUpload = () => {
-  if (uploadStatus.value === 'uploading') {
-    uploadStatus.value = 'paused'
-  }
-}
+const pauseUpload = () => { if (uploadStatus.value === 'uploading') uploadStatus.value = 'paused' }
+const resumeUpload = () => { if (uploadStatus.value === 'paused') startUpload() }
+const restartUpload = () => { resetUpload(); if (file.value) { splitFileWithWorker(); calculateHashWithWorker() } }
+const selectFile = () => fileInput.value?.click()
+const cancelUpload = () => { resetUpload(); file.value = null; terminateWorker() }
 
-// 恢复上传
-const resumeUpload = () => {
-  if (uploadStatus.value === 'paused') {
-    startUpload()
-  }
-}
-
-// 重新上传
-const restartUpload = () => {
-  resetUpload()
-  if (file.value) {
-    splitFileIntoChunks()
-  }
-}
-
-// 选择文件
-const selectFile = () => {
-  fileInput.value?.click()
-}
-
-// 取消上传
-const cancelUpload = () => {
-  resetUpload()
-  file.value = null
-}
-
-// 内存监控定时器
 let memoryMonitorInterval: number | null = null
 
-// 监听分片大小变化，重新计算分片
 watch(chunkSize, () => {
-  if (file.value && uploadStatus.value === 'idle') {
-    splitFileIntoChunks()
-  }
+  if (file.value && uploadStatus.value === 'idle' && !isProcessingFile.value) splitFileWithWorker()
 }, { immediate: false })
 
-// 组件挂载时启动内存监控
 onMounted(() => {
-  // 定时记录内存使用情况
   memoryMonitorInterval = window.setInterval(() => {
-    const perfWithMemory = getPerformanceWithMemory()
-    if (perfWithMemory) {
-      memoryHistory.value.push(perfWithMemory.memory.usedJSHeapSize)
-      // 保持历史记录在最大长度以内
-      if (memoryHistory.value.length > maxMemoryHistory) {
-        memoryHistory.value.shift()
-      }
+    const perf = getPerformanceWithMemory()
+    if (perf) {
+      memoryHistory.value.push(perf.memory.usedJSHeapSize)
+      if (memoryHistory.value.length > maxMemoryHistory) memoryHistory.value.shift()
     }
   }, 1000)
 })
 
-// 组件卸载时清除定时器
 onUnmounted(() => {
-  if (memoryMonitorInterval) {
-    clearInterval(memoryMonitorInterval)
-  }
+  if (memoryMonitorInterval) clearInterval(memoryMonitorInterval)
+  terminateWorker()
 })
 </script>
 
 <style scoped>
-.file-upload-container {
-  max-width: 800px;
+/* 页面容器 */
+.file-upload-wrapper {
+  max-width: 1400px;
   margin: 0 auto;
-  position: relative;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* 技术说明图标按钮 */
-.tech-info-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-  color: var(--color-text-secondary);
-  position: relative;
-  z-index: 1001;
+/* 页面头部 */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
 }
 
-.tech-info-btn:hover {
-  background-color: var(--color-bg-secondary);
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
   color: var(--color-text-primary);
-  transform: scale(1.1);
+  margin: 0;
+  letter-spacing: -0.5px;
 }
 
-.tech-info-btn svg {
+.page-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.info-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.info-toggle-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.info-toggle-btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* 技术说明面板 */
+.tech-panel {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-lg);
+}
+
+.tech-content {
+  color: white;
+}
+
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.tech-item {
+  text-align: center;
+}
+
+.tech-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tech-icon svg {
   width: 24px;
   height: 24px;
 }
 
-/* 技术说明气泡 */
-.tech-info-popover {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 0.5rem;
-  width: 800px;
-  max-width: 90vw;
-  max-height: 85vh;
-  background-color: var(--color-bg-primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-radius: var(--radius-md);
-  z-index: 1000;
+.tech-item h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.tech-item p {
+  font-size: 12px;
+  opacity: 0.85;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* 主内容区 */
+.main-content {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 16px;
+}
+
+/* 卡片通用样式 */
+.card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
   overflow: hidden;
-  animation: popoverFadeIn 0.3s ease;
 }
 
-.tech-info-content {
-  padding: 1.5rem;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-/* 气泡动画 */
-@keyframes popoverFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px) scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* 滚动条样式 */
-.tech-info-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.tech-info-content::-webkit-scrollbar-track {
-  background: var(--color-bg-secondary);
-  border-radius: 3px;
-}
-
-.tech-info-content::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 3px;
-}
-
-.tech-info-content::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-secondary);
-}
-
-.file-selector {
-  background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-}
-
-.upload-settings,
-.upload-status,
-.upload-progress,
-.chunks-info,
-.upload-controls {
-  background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-}
-
-.status-card {
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
-}
-
-.status-item {
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.status-label {
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.card-body {
+  padding: 16px;
+}
+
+/* 左侧面板 */
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 文件选择卡片 */
+.file-dropzone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.file-dropzone:hover,
+.file-dropzone.dragging {
+  border-color: var(--color-primary);
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.dropzone-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+  background: var(--bg-secondary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dropzone-icon svg {
+  width: 28px;
+  height: 28px;
+  color: var(--text-secondary);
+}
+
+.dropzone-text {
+  font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
+  margin: 0 0 4px;
 }
 
-.status-value {
+.dropzone-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* 文件详情 */
+.file-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-top: 16px;
+}
+
+.file-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--color-primary);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.file-icon svg {
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+
+.file-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-meta .file-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta .file-size {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.file-remove {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.file-remove:hover {
+  background: var(--error);
+  color: white;
+}
+
+.file-remove svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Hash 信息 */
+.hash-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.hash-label {
+  color: var(--text-secondary);
+}
+
+.hash-value {
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 11px;
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--color-text-primary);
+}
+
+.hash-calculating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--color-primary);
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 错误提示 */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-md);
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--error);
+}
+
+.error-banner svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* 设置卡片 */
+.setting-item {
+  margin-bottom: 20px;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
+}
+
+.setting-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.setting-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.setting-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.setting-range {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  outline: none;
+}
+
+.setting-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.setting-range::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.setting-range:disabled {
+  opacity: 0.5;
+}
+
+.setting-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.setting-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
-.form-group {
-  margin-bottom: var(--spacing-md);
+/* 控制按钮 */
+.control-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
-.form-label {
-  display: block;
-  margin-bottom: var(--spacing-sm);
-  font-weight: 500;
-  color: var(--color-text-primary);
-}
-
-.btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: none;
+.control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  background: var(--bg-secondary);
   border-radius: var(--radius-md);
+  font-size: 13px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-primary {
-  background-color: var(--color-primary);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
-}
-
-.btn-secondary {
-  background-color: var(--color-bg-tertiary);
   color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background-color: var(--color-border);
+.control-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--text-secondary);
 }
 
-.btn-danger {
-  background-color: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background-color: #dc2626;
-}
-
-.btn:disabled {
+.control-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.file-name {
-  font-weight: 500;
-  color: var(--color-text-primary);
+.control-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
-.file-size {
-  color: var(--color-text-secondary);
+.control-btn.primary {
+  grid-column: span 2;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.control-btn.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.control-btn.warning {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+.control-btn.warning:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+/* 右侧面板 */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.idle {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.status-badge.uploading {
+  background: rgba(255, 255, 255, 0.3);
+  animation: pulse 1.5s infinite;
+}
+
+.status-badge.paused {
+  background: rgba(245, 158, 11, 0.3);
+}
+
+.status-badge.completed {
+  background: rgba(16, 185, 129, 0.3);
+}
+
+.status-badge.error {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* 进度环 */
+.progress-ring-wrapper {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 20px;
+}
+
+.progress-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.progress-ring-bg {
+  fill: none;
+  stroke: var(--bg-tertiary);
+  stroke-width: 8;
+}
+
+.progress-ring-fill {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.progress-ring-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.progress-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+
+.progress-unit {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* 状态列表 */
+.status-list {
+  display: grid;
+  gap: 10px;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.status-row:last-child {
+  border-bottom: none;
+}
+
+.status-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.status-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 内存监控 */
+.memory-card .card-header,
+.chunks-card .card-header {
+  background: var(--bg-secondary);
+}
+
+.memory-current {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.memory-chart {
+  height: 100px;
+}
+
+.chart-bars {
+  height: 80px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.chart-bar {
+  flex: 1;
+  background: linear-gradient(to top, var(--color-primary), var(--color-primary-hover));
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+  transition: height 0.3s ease;
+}
+
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 6px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* 分片详情 */
+.toggle-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  background: var(--bg-primar);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chunks-card .card-body {
+  max-height: 120px;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.chunks-card .card-body.expanded {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.chunks-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .chunks-grid {
-  max-width: 100%;
-  overflow-x: auto;
-  padding: var(--spacing-sm) 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
-.error-message {
-  color: #ef4444;
+.chunk-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  transition: all 0.2s;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .file-upload-container {
-    padding: 1rem;
+.chunk-dot.uploaded {
+  background: var(--success);
+}
+
+.chunk-dot.pending {
+  background: var(--bg-tertiary);
+}
+
+.chunk-dot.error {
+  background: var(--error);
+}
+
+.chunk-dot.current {
+  background: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary);
+  animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
   }
 
-  .upload-controls .flex {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.chunks-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.legend-item .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.legend-item .dot.uploaded {
+  background: var(--success);
+}
+
+.legend-item .dot.pending {
+  background: var(--bg-tertiary);
+}
+
+.legend-item .dot.error {
+  background: var(--error);
+}
+
+.legend-item .dot.current {
+  background: var(--color-primary);
+}
+
+.chunks-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--text-secondary);
+}
+
+.chunks-empty svg {
+  width: 32px;
+  height: 32px;
+  opacity: 0.5;
+}
+
+.chunks-empty span {
+  font-size: 12px;
+}
+
+/* 过渡动画 */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* 响应式 */
+@media (max-width: 1024px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+
+  .tech-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .file-upload-wrapper {
+    padding: 16px;
+  }
+
+  .page-header {
     flex-direction: column;
+    gap: 16px;
   }
 
-  .upload-controls .btn {
-    width: 100%;
-    margin-bottom: 0.5rem;
+  .tech-grid {
+    grid-template-columns: 1fr;
   }
 
-  .tech-info-popup {
-    width: 100%;
+  .control-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .control-btn.primary {
+    grid-column: span 1;
   }
 }
 </style>
